@@ -1,0 +1,712 @@
+/**
+ * Product Addons & Bundles — admin.
+ * Field builder: scoped to #pab_addons_data .pab-field-builder (product tab) and
+ * #pab_group_addons .pab-field-builder (Addon Group CPT). Plugin-only card classes in the Woo panel — do not use core .postbox / .inside inside product data.
+ */
+
+#pab_addons_data .pab-is-hidden {
+	display: none !important;
+}
+
+/* -------------------------------------------------------------------------
+ * Field builder (product tab + group CPT)
+ * ------------------------------------------------------------------------- */
+
+#pab_addons_data .pab-field-builder,
+#pab_group_addons .pab-field-builder {
+	--pab-surface: #fff;
+	--pab-surface-muted: #f3f4f6;
+	--pab-border: #c3c4c7;
+	--pab-border-subtle: #dcdcde;
+	--pab-accent: #2271b1;
+	--pab-accent-hover: #135e96;
+	--pab-text: #1d2327;
+	--pab-muted: #646970;
+	--pab-radius: 6px;
+	--pab-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+	--pab-rhythm: 12px;
+	/* Choices table (image swatch / select options): column widths */
+	--pab-opt-label-max: 320px;
+	--pab-opt-price-w: 96px;
+	--pab-opt-image-min: 168px;
+	--pab-opt-actions-w: 36px;
+}
+
+#pab_addons_data .pab-field-builder .pab-is-hidden,
+#pab_group_addons .pab-field-builder .pab-is-hidden {
+	display: none !important;
+}
+
+#pab_addons_data .pab-field-builder .pab-repeater-list,
+#pab_group_addons .pab-field-builder .pab-repeater-list {
+	margin: 0 0 var(--pab-rhythm);
+}
+
+#pab_addons_data .pab-field-builder .pab-field-builder__toolbar,
+#pab_group_addons .pab-field-builder .pab-field-builder__toolbar {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin: 0 0 14px;
+	padding: 10px 12px;
+	background: var(--pab-surface-muted);
+	border: 1px solid var(--pab-border-subtle);
+	border-radius: var(--pab-radius);
+	box-shadow: var(--pab-shadow);
+}
+
+#pab_addons_data .pab-field-builder .pab-field-builder__toolbar .button-primary,
+#pab_group_addons .pab-field-builder .pab-field-builder__toolbar .button-primary {
+	box-shadow: 0 1px 0 var(--pab-border);
+}
+
+#pab_addons_data .pab-field-builder .pab-field-builder__toolbar label,
+#pab_group_addons .pab-field-builder .pab-field-builder__toolbar label {
+	margin-right: 0;
+}
+
+/* Metabox-like cards (addon rows only inside builder) */
+#pab_addons_data .pab-field-builder .pab-settings-card,
+#pab_group_addons .pab-field-builder .pab-settings-card {
+	position: relative;
+	z-index: 1;
+	margin: 0 0 var(--pab-rhythm);
+	background: var(--pab-surface);
+	border: 1px solid var(--pab-border);
+	box-shadow: var(--pab-shadow);
+	border-radius: var(--pab-radius);
+	max-width: 100%;
+	overflow: hidden;
+}
+
+#pab_addons_data .pab-field-builder .pab-addon-row__header,
+#pab_group_addons .pab-field-builder .pab-addon-row__header {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0;
+	padding: 10px 12px;
+	background: linear-gradient(180deg, #fafafa 0%, #f0f0f1 100%);
+	border-bottom: 1px solid var(--pab-border-subtle);
+	min-height: 44px;
+	box-sizing: border-box;
+	cursor: pointer;
+}
+
+#pab_addons_data .pab-field-builder .pab-addon-row__header .pab-drag-handle,
+#pab_group_addons .pab-field-builder .pab-addon-row__header .pab-drag-handle {
+	cursor: move;
+	color: #8c8f94;
+	flex-shrink: 0;
+}
+
+#pab_addons_data .pab-field-builder .pab-addon-row__summary,
+#pab_group_addons .pab-field-builder .pab-addon-row__summary {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+#pab_addons_data .pab-field-builder .pab-field-builder__title,
+#pab_group_addons .pab-field-builder .pab-field-builder__title {
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.35;
+	font-weight: 600;
+	color: var(--pab-text);
+}
+
+#pab_addons_data .pab-field-builder .pab-field-builder__key,
+#pab_group_addons .pab-field-builder .pab-field-builder__key {
+	display: inline-block;
+	max-width: 100%;
+	padding: 1px 6px;
+	font-size: 11px;
+	line-height: 1.4;
+	color: var(--pab-muted);
+	background: rgba(0, 0, 0, 0.04);
+	border-radius: 3px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+#pab_addons_data .pab-field-builder .pab-field-type-badge,
+#pab_group_addons .pab-field-builder .pab-field-type-badge {
+	flex-shrink: 0;
+	display: inline-block;
+	padding: 2px 10px;
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1.5;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	color: var(--pab-accent);
+	background: rgba(34, 113, 177, 0.1);
+	border: 1px solid rgba(34, 113, 177, 0.25);
+	border-radius: 999px;
+}
+
+#pab_addons_data .pab-field-builder .pab-addon-row__actions,
+#pab_group_addons .pab-field-builder .pab-addon-row__actions {
+	flex-shrink: 0;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+#pab_addons_data .pab-field-builder .pab-addon-row__actions .button-link,
+#pab_group_addons .pab-field-builder .pab-addon-row__actions .button-link {
+	padding: 0 2px;
+}
+
+#pab_addons_data .pab-field-builder .pab-settings-card__toggle,
+#pab_group_addons .pab-field-builder .pab-settings-card__toggle {
+	flex-shrink: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 32px;
+	padding: 0 6px !important;
+	cursor: pointer;
+}
+
+#pab_addons_data .pab-field-builder .pab-settings-card__toggle .dashicons,
+#pab_group_addons .pab-field-builder .pab-settings-card__toggle .dashicons {
+	width: 18px;
+	height: 18px;
+	font-size: 18px;
+	line-height: 1;
+}
+
+#pab_addons_data .pab-field-builder .pab-settings-card__body,
+#pab_group_addons .pab-field-builder .pab-settings-card__body {
+	margin: 0;
+	padding: 14px 14px 10px;
+	box-sizing: border-box;
+}
+
+#pab_addons_data .pab-field-builder .pab-field-settings-heading,
+#pab_group_addons .pab-field-builder .pab-field-settings-heading {
+	margin: 16px 0 8px;
+	font-size: 12px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: #50575e;
+}
+
+#pab_addons_data .pab-field-builder .pab-field-settings-heading:first-child,
+#pab_group_addons .pab-field-builder .pab-field-settings-heading:first-child {
+	margin-top: 0;
+}
+
+#pab_addons_data .pab-field-builder .pab-field-settings-table,
+#pab_group_addons .pab-field-builder .pab-field-settings-table {
+	margin: 0 0 var(--pab-rhythm);
+	border: 1px solid var(--pab-border-subtle);
+	border-radius: var(--pab-radius);
+	background: var(--pab-surface);
+	border-collapse: separate;
+	border-spacing: 0;
+	overflow: hidden;
+}
+
+#pab_addons_data .pab-field-builder .pab-field-settings-table__row:not(:last-child) th,
+#pab_addons_data .pab-field-builder .pab-field-settings-table__row:not(:last-child) td,
+#pab_group_addons .pab-field-builder .pab-field-settings-table__row:not(:last-child) th,
+#pab_group_addons .pab-field-builder .pab-field-settings-table__row:not(:last-child) td {
+	border-bottom: 1px solid var(--pab-border-subtle);
+}
+
+#pab_addons_data .pab-field-builder .pab-field-settings-table__label,
+#pab_group_addons .pab-field-builder .pab-field-settings-table__label {
+	width: 160px;
+	max-width: 36%;
+	padding: 10px 12px;
+	vertical-align: top;
+	font-weight: 600;
+	font-size: 13px;
+	line-height: 1.4;
+	color: var(--pab-text);
+	background: var(--pab-surface-muted);
+}
+
+#pab_addons_data .pab-field-builder .pab-field-settings-table__control,
+#pab_group_addons .pab-field-builder .pab-field-settings-table__control {
+	padding: 10px 12px;
+	vertical-align: top;
+	font-size: 13px;
+	line-height: 1.45;
+}
+
+/*
+ * WooCommerce product data floats every label (150px + -150px margin) for p.form-field rows.
+ * Labels inside our own tables inherit that and overlap the <th>. Reset to normal flow.
+ */
+#pab_addons_data .pab-field-builder .pab-field-settings-table label,
+#pab_group_addons .pab-field-builder .pab-field-settings-table label {
+	float: none !important;
+	width: auto !important;
+	max-width: none;
+	margin: 0 !important;
+	padding: 0 !important;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	line-height: inherit;
+}
+
+#pab_addons_data .pab-field-builder .pab-field-settings-table input.checkbox,
+#pab_group_addons .pab-field-builder .pab-field-settings-table input.checkbox {
+	float: none !important;
+	margin: 0 !important;
+	vertical-align: middle;
+}
+
+#pab_addons_data .pab-field-builder .pab-field-settings-table__control .description,
+#pab_group_addons .pab-field-builder .pab-field-settings-table__control .description {
+	margin-top: 6px;
+	margin-bottom: 0;
+}
+
+#pab_addons_data .pab-field-builder .pab-options-section,
+#pab_group_addons .pab-field-builder .pab-options-section {
+	margin-top: 4px;
+	padding-top: 4px;
+	border-top: none;
+}
+
+#pab_addons_data .pab-field-builder .pab-options-panel,
+#pab_group_addons .pab-field-builder .pab-options-panel {
+	margin-top: 4px;
+	padding: 12px;
+	background: var(--pab-surface-muted);
+	border: 1px solid var(--pab-border-subtle);
+	border-radius: var(--pab-radius);
+}
+
+#pab_addons_data .pab-field-builder .pab-options-panel .pab-field-settings-heading,
+#pab_group_addons .pab-field-builder .pab-options-panel .pab-field-settings-heading {
+	margin-top: 0;
+}
+
+#pab_addons_data .pab-field-builder .pab-options-list,
+#pab_group_addons .pab-field-builder .pab-options-list {
+	max-width: 100%;
+}
+
+#pab_addons_data .pab-field-builder .pab-option-row-flex,
+#pab_group_addons .pab-field-builder .pab-option-row-flex {
+	display: flex;
+	flex-wrap: nowrap;
+	align-items: center;
+	gap: 10px 12px;
+	box-sizing: border-box;
+}
+
+#pab_addons_data .pab-field-builder .pab-options-head.pab-option-row-flex,
+#pab_group_addons .pab-field-builder .pab-options-head.pab-option-row-flex {
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1.4;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: #50575e;
+	padding: 0 0 10px;
+	margin: 10px 0 10px;
+	border-bottom: 1px solid var(--pab-border-subtle);
+}
+
+#pab_addons_data .pab-field-builder .pab-option-line.pab-option-row-flex,
+#pab_group_addons .pab-field-builder .pab-option-line.pab-option-row-flex {
+	margin: 0 0 8px;
+	padding: 10px 10px;
+	background: var(--pab-surface);
+	border: 1px solid var(--pab-border-subtle);
+	border-radius: var(--pab-radius);
+	box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
+}
+
+/*
+ * Header cells must mirror body column flex: the label column used max-width: 100% and grew,
+ * pushing “Swatch image” next to the title while thumbnails sat far right.
+ */
+#pab_addons_data .pab-field-builder .pab-options-head .pab-option-head-label,
+#pab_group_addons .pab-field-builder .pab-options-head .pab-option-head-label {
+	flex: 1 1 140px;
+	min-width: 100px;
+	max-width: var(--pab-opt-label-max);
+}
+
+#pab_addons_data .pab-field-builder .pab-options-head .pab-option-head-price,
+#pab_group_addons .pab-field-builder .pab-options-head .pab-option-head-price {
+	flex: 0 0 var(--pab-opt-price-w);
+	max-width: var(--pab-opt-price-w);
+}
+
+#pab_addons_data .pab-field-builder .pab-options-head .pab-option-head-image,
+#pab_group_addons .pab-field-builder .pab-options-head .pab-option-head-image {
+	flex: 0 0 auto;
+	min-width: var(--pab-opt-image-min);
+	max-width: 100%;
+}
+
+#pab_addons_data .pab-field-builder .pab-options-head .pab-option-head-actions,
+#pab_group_addons .pab-field-builder .pab-options-head .pab-option-head-actions {
+	flex: 0 0 var(--pab-opt-actions-w);
+	width: var(--pab-opt-actions-w);
+	min-width: var(--pab-opt-actions-w);
+}
+
+#pab_addons_data .pab-field-builder .pab-option-line.pab-option-row-flex:last-child,
+#pab_group_addons .pab-field-builder .pab-option-line.pab-option-row-flex:last-child {
+	margin-bottom: 4px;
+}
+
+#pab_addons_data .pab-field-builder .pab-option-col-label,
+#pab_group_addons .pab-field-builder .pab-option-col-label {
+	flex: 1 1 140px;
+	min-width: 100px;
+	max-width: var(--pab-opt-label-max);
+}
+
+#pab_addons_data .pab-field-builder .pab-option-col-label .regular-text,
+#pab_group_addons .pab-field-builder .pab-option-col-label .regular-text {
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+#pab_addons_data .pab-field-builder .pab-option-col-price,
+#pab_group_addons .pab-field-builder .pab-option-col-price {
+	flex: 0 0 var(--pab-opt-price-w);
+	max-width: var(--pab-opt-price-w);
+}
+
+#pab_addons_data .pab-field-builder .pab-option-col-price .pab-option-price-input,
+#pab_group_addons .pab-field-builder .pab-option-col-price .pab-option-price-input {
+	width: 100%;
+	max-width: 92px;
+	box-sizing: border-box;
+}
+
+#pab_addons_data .pab-field-builder .pab-option-col-image,
+#pab_group_addons .pab-field-builder .pab-option-col-image {
+	flex: 0 0 auto;
+	align-self: center;
+	min-width: var(--pab-opt-image-min);
+	max-width: 100%;
+}
+
+#pab_addons_data .pab-field-builder .pab-option-image-tools,
+#pab_group_addons .pab-field-builder .pab-option-image-tools {
+	display: inline-flex;
+	align-items: center;
+	flex-wrap: nowrap;
+	gap: 8px;
+	min-width: 0;
+}
+
+#pab_addons_data .pab-field-builder .pab-option-col-actions,
+#pab_group_addons .pab-field-builder .pab-option-col-actions {
+	flex: 0 0 var(--pab-opt-actions-w);
+	width: var(--pab-opt-actions-w);
+	min-width: var(--pab-opt-actions-w);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+#pab_addons_data .pab-field-builder .pab-option-preview,
+#pab_group_addons .pab-field-builder .pab-option-preview {
+	display: block;
+	width: 36px;
+	height: 36px;
+	object-fit: cover;
+	border-radius: 4px;
+	border: 1px solid var(--pab-border);
+	flex-shrink: 0;
+	background: var(--pab-surface-muted);
+}
+
+#pab_addons_data .pab-field-builder .pab-option-preview.is-empty,
+#pab_group_addons .pab-field-builder .pab-option-preview.is-empty {
+	display: none;
+}
+
+#pab_addons_data .pab-field-builder .pab-option-col-actions .pab-remove-option,
+#pab_group_addons .pab-field-builder .pab-option-col-actions .pab-remove-option {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 28px;
+	min-height: 28px;
+	font-size: 18px;
+	line-height: 1;
+	text-decoration: none;
+}
+
+#pab_addons_data .pab-field-builder .pab-options-actions,
+#pab_group_addons .pab-field-builder .pab-options-actions {
+	margin: 12px 0 0;
+	text-align: left;
+}
+
+#pab_addons_data .pab-field-builder .pab-sortable-placeholder,
+#pab_group_addons .pab-field-builder .pab-sortable-placeholder {
+	border: 1px dashed #8c8f94;
+	background: var(--pab-surface-muted);
+	height: 56px;
+	margin-bottom: var(--pab-rhythm);
+	border-radius: var(--pab-radius);
+}
+
+@media screen and (max-width: 900px) {
+	#pab_addons_data .pab-field-builder .pab-option-line.pab-option-row-flex,
+	#pab_addons_data .pab-field-builder .pab-options-head.pab-option-row-flex,
+	#pab_group_addons .pab-field-builder .pab-option-line.pab-option-row-flex,
+	#pab_group_addons .pab-field-builder .pab-options-head.pab-option-row-flex {
+		flex-wrap: wrap;
+	}
+
+	#pab_addons_data .pab-field-builder .pab-option-col-price,
+	#pab_group_addons .pab-field-builder .pab-option-col-price {
+		flex: 0 0 auto;
+	}
+
+	#pab_addons_data .pab-field-builder .pab-field-settings-table__label,
+	#pab_group_addons .pab-field-builder .pab-field-settings-table__label {
+		width: 120px;
+	}
+}
+
+/* -------------------------------------------------------------------------
+ * Product tab — sections outside field builder
+ * ------------------------------------------------------------------------- */
+
+#pab_addons_data .pab-section-intro .description {
+	display: block;
+	margin-top: 6px;
+	font-weight: 400;
+}
+
+#pab_addons_data .pab-repeater-list {
+	margin: 0 0 12px;
+}
+
+#pab_addons_data .pab-settings-card {
+	position: relative;
+	z-index: 1;
+	margin: 0 0 12px;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+	max-width: 100%;
+}
+
+#pab_addons_data .pab-settings-card__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin: 0;
+	padding: 10px 12px;
+	background: #f6f7f7;
+	border-bottom: 1px solid #c3c4c7;
+	min-height: 40px;
+	box-sizing: border-box;
+}
+
+#pab_addons_data .pab-drag-handle {
+	cursor: move;
+	color: #8c8f94;
+}
+
+#pab_addons_data .pab-field-search-wrap {
+	margin-top: 8px;
+}
+
+#pab_addons_data .pab-settings-card__title {
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.4;
+	font-weight: 600;
+	color: #1d2327;
+	flex: 1;
+	min-width: 0;
+}
+
+#pab_addons_data .pab-settings-card__toggle {
+	flex-shrink: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 32px;
+	padding: 0 6px !important;
+}
+
+#pab_addons_data .pab-settings-card__toggle .dashicons {
+	width: 18px;
+	height: 18px;
+	font-size: 18px;
+	line-height: 1;
+}
+
+#pab_addons_data .pab-settings-card__body {
+	margin: 0;
+	padding: 12px 12px 4px;
+	box-sizing: border-box;
+}
+
+#pab_addons_data .pab-field-line.form-field label {
+	font-weight: 600;
+}
+
+#pab_addons_data .pab-variation-section {
+	margin: 8px 0 12px;
+	padding: 10px 12px;
+	background: #f6f7f7;
+	border: 1px solid #c3c4c7;
+}
+
+#pab_addons_data .pab-variation-list label {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin-bottom: 4px;
+	font-size: 13px;
+}
+
+#pab_addons_data .pab-rule-row-body .pab-rule-inline-label {
+	font-size: 11px;
+	font-weight: 600;
+	color: #50575e;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	margin-right: 4px;
+}
+
+#pab_addons_data .pab-rule-row-body select,
+#pab_addons_data .pab-rule-row-body input[type="text"] {
+	vertical-align: middle;
+}
+
+#pab_addons_data .pab-rule-action-target,
+#pab_addons_data .pab-rule-action-amount {
+	margin-left: 6px;
+}
+
+#pab_addons_data .pab-remove-option.button-link-delete {
+	text-decoration: none;
+	padding: 0 4px;
+}
+
+/*
+ * Child products — storefront layout.
+ * #pab_addons_data is .woocommerce_options_panel: WC floats ALL labels (150px + negative margin).
+ * Reset that only for the radio option labels so they stack normally.
+ */
+#pab_addons_data .pab-child-layout-field__controls {
+	display: block;
+	overflow: hidden;
+}
+
+#pab_addons_data .pab-child-layout-field__controls > .description {
+	display: block !important;
+	float: none !important;
+	clear: both;
+	margin: 0 0 10px !important;
+	max-width: 36em;
+	line-height: 1.5;
+}
+
+#pab_addons_data .pab-layout-radios {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	max-width: 36em;
+}
+
+#pab_addons_data .pab-layout-radio-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	margin: 0;
+	line-height: 1.5;
+}
+
+#pab_addons_data .pab-layout-radio-row input[type="radio"] {
+	float: none !important;
+	margin: 2px 0 0 !important;
+	flex-shrink: 0;
+}
+
+#pab_addons_data label.pab-layout-radio-label {
+	float: none !important;
+	width: auto !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	display: block;
+	font-weight: 400;
+	cursor: pointer;
+	line-height: 1.5;
+}
+
+/* -------------------------------------------------------------------------
+ * Addon group: Display / Location (taxonomy rules)
+ * ------------------------------------------------------------------------- */
+
+#pab_group_targeting .pab-group-location-rules {
+	margin-top: 16px;
+	padding-top: 12px;
+	border-top: 1px solid #dcdcde;
+}
+
+#pab_group_targeting .pab-location-rules-match {
+	margin-bottom: 12px;
+}
+
+#pab_group_targeting .pab-location-rule-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	gap: 8px 12px;
+	margin-bottom: 10px;
+	padding: 10px 12px;
+	background: #f6f7f7;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+}
+
+#pab_group_targeting .pab-location-rule-col-param {
+	flex: 1 1 200px;
+	min-width: 180px;
+}
+
+#pab_group_targeting .pab-location-rule-col-operator {
+	flex: 0 0 auto;
+	min-width: 140px;
+}
+
+#pab_group_targeting .pab-location-rule-col-value {
+	flex: 2 1 220px;
+	min-width: 200px;
+}
+
+#pab_group_targeting .pab-location-rule-col-actions {
+	flex: 0 0 auto;
+	align-self: center;
+}
+
+#pab_group_targeting .pab-location-rule-row select {
+	max-width: 100%;
+}
+
+#pab_group_targeting .pab-location-rule-col-value .select2-container {
+	min-width: 200px;
+	width: 100% !important;
+}

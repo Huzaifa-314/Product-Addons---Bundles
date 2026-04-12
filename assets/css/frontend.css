@@ -1,0 +1,1094 @@
+/* Product Addons & Bundles — Frontend Styles
+ * Intentionally minimal — inherits WooCommerce / theme styles for form elements.
+ */
+
+.pab-product-addons {
+    margin: 20px 0;
+}
+
+.pab-addons-section,
+.pab-children-section {
+    margin-bottom: 16px;
+}
+
+.pab-children-layout--default {
+    display: block;
+}
+
+.pab-children-layout--image_swatch {
+    display: block;
+}
+
+.pab-children-layout--product_card {
+    display: grid;
+    gap: 16px;
+}
+
+/* Exclusive image swatches: flex so each tile is only as wide as the image + price (no fr columns / margin:auto gaps). */
+.pab-child-swatch-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 14px;
+    align-items: flex-start;
+}
+
+.pab-children-layout--product_card {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.pab-section-heading {
+    font-size: 0.92em;
+    font-weight: var(--wd-title-font-weight, 600);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-gray-500, inherit);
+    border-bottom: 1px solid var(--brdcolor-gray-300, currentColor);
+    opacity: 1;
+    padding-bottom: 8px;
+    margin: 0 0 14px;
+}
+
+.pab-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Individual field wrapper */
+.pab-field-wrap {
+    margin-bottom: 14px;
+}
+
+.pab-field-label {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35em 0.65em;
+    font-size: 0.875em;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+/* Keep label text + required star in one flex item so flex `gap` does not insert space before *. */
+.pab-field-label__main {
+    display: inline;
+}
+
+.pab-field-label__main .pab-required-star {
+    margin-left: 0.125em;
+    white-space: nowrap;
+}
+
+/* Match server-rendered hints: wc_price() markup inside gets theme/WooCommerce styling. */
+.pab-field-label .pab-opt-price {
+    font-size: 1em;
+    font-weight: 500;
+    opacity: 0.92;
+}
+
+.pab-field-label .pab-opt-price .woocommerce-Price-amount {
+    color: var(--wd-primary-color, #b32d2e);
+}
+
+/* Image swatch field label price: visibility controlled in JS (selected option + file for custom). */
+
+/* Remove file: in label row after price (theme overrides [hidden] on buttons; use --shown + !important) */
+.pab-field-label .pab-file-upload-clear {
+    display: none !important;
+    margin: 0;
+    padding: 0;
+    border: 0 !important;
+    border-radius: 0;
+    box-shadow: none !important;
+    background: none !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: 500;
+    line-height: inherit;
+    color: var(--wd-primary-color, #b32d2e);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    vertical-align: baseline;
+    appearance: none;
+    -webkit-appearance: none;
+    min-height: 0;
+    transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+
+.pab-field-label .pab-file-upload-clear.pab-file-upload-clear--shown {
+    display: inline !important;
+}
+
+/* Block theme/Woo “button” hover/focus fills (grey pill, shadows, lift). */
+.pab-field-label .pab-file-upload-clear:hover,
+.pab-field-label .pab-file-upload-clear:focus,
+.pab-field-label .pab-file-upload-clear:active {
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    transform: none !important;
+    opacity: 1;
+    color: var(--wd-primary-color, #b32d2e);
+    filter: brightness(0.88);
+}
+
+.pab-field-label .pab-file-upload-clear:focus {
+    outline: none;
+}
+
+.pab-field-label .pab-file-upload-clear:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+    filter: none;
+}
+
+/* Text/number/textarea — inherit theme's .input-text styles;
+   only set width so they don't stretch full-page */
+.pab-field-wrap input.input-text,
+.pab-field-wrap textarea.input-text {
+    width: 100%;
+    max-width: 400px;
+}
+
+.pab-field-wrap textarea.input-text {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.pab-field-wrap select {
+    max-width: 400px;
+}
+
+/* Radio buttons */
+.pab-radio-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0 12px 4px 0;
+    cursor: pointer;
+}
+
+/* Checkbox */
+.pab-checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+/* -----------------------------------------------------------------------
+   File / image upload (styled dropzone, native input overlay)
+----------------------------------------------------------------------- */
+.pab-file-upload {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* After a file is chosen, wrap only the thumbnail + meta (no full-width empty dashed area). */
+.pab-file-upload--image.pab-has-file {
+    width: fit-content;
+    max-width: 100%;
+    --pab-upload-thumb-w: 240px;
+    --pab-upload-thumb-h: 96px;
+}
+
+.pab-file-upload--image.pab-has-file.pab-file-upload--swatch-addon {
+    --pab-upload-thumb-w: 180px;
+    --pab-upload-thumb-h: 80px;
+}
+
+.pab-file-upload-drop {
+    position: relative;
+    border-radius: var(--wd-brd-radius, 10px);
+    border: 2px dashed color-mix(in srgb, var(--brdcolor-gray-400, #999) 55%, transparent);
+    background: color-mix(in srgb, var(--bgcolor-gray-100, #f5f5f5) 88%, transparent);
+    transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pab-file-upload-drop:hover {
+    border-color: color-mix(in srgb, var(--wd-primary-color, #333) 45%, var(--brdcolor-gray-400, #999));
+    background: color-mix(in srgb, var(--wd-primary-color, #333) 6%, var(--bgcolor-white, #fff));
+}
+
+.pab-file-upload.pab-is-dragover .pab-file-upload-drop {
+    border-color: var(--wd-primary-color, #333);
+    border-style: solid;
+    background: color-mix(in srgb, var(--wd-primary-color, #333) 10%, var(--bgcolor-white, #fff));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--wd-primary-color, #333) 18%, transparent);
+}
+
+.pab-file-upload-input {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    opacity: 0;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.pab-file-upload-panel {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 4px;
+    padding: 22px 18px 20px;
+    pointer-events: none;
+}
+
+.pab-file-upload-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    min-width: 0;
+}
+
+/* Image uploads: compact “button” row (idle) — theme colors, less vertical space */
+.pab-file-upload--image:not(.pab-has-file) .pab-file-upload-panel {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: left;
+    gap: 12px;
+    padding: 10px 14px;
+}
+
+.pab-file-upload--image:not(.pab-has-file) .pab-file-upload-body {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+}
+
+.pab-file-upload--image:not(.pab-has-file) .pab-file-upload-icon {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 0;
+    flex-shrink: 0;
+}
+
+.pab-file-upload--image:not(.pab-has-file) .pab-file-upload-icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.pab-file-upload--image:not(.pab-has-file) .pab-file-upload-cta {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.pab-file-upload--image:not(.pab-has-file) .pab-file-upload-cta-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25em 0.5em;
+}
+
+.pab-file-upload--image:not(.pab-has-file) .pab-file-upload-title {
+    font-size: 0.875em;
+    font-weight: 600;
+}
+
+.pab-file-upload--image:not(.pab-has-file) .pab-file-upload-sub--idle {
+    font-size: 0.8em;
+}
+
+.pab-file-upload--image:not(.pab-has-file) .pab-file-upload-filename {
+    margin-top: 0;
+    padding: 0;
+    font-size: 0.75em;
+    font-weight: 500;
+    color: var(--color-gray-500, #666);
+    border: 0;
+    background: none;
+    box-shadow: none;
+    border-radius: 0;
+}
+
+.pab-file-upload--image:not(.pab-has-file) .pab-file-upload-drop {
+    border-width: 1px;
+    border-style: solid;
+    border-color: color-mix(in srgb, var(--brdcolor-gray-400, #999) 50%, transparent);
+    background: color-mix(in srgb, var(--bgcolor-gray-100, #f5f5f5) 92%, transparent);
+}
+
+.pab-file-upload--image:not(.pab-has-file) .pab-file-upload-drop:hover {
+    border-color: color-mix(in srgb, var(--wd-primary-color, #333) 40%, var(--brdcolor-gray-400, #999));
+    background: color-mix(in srgb, var(--wd-primary-color, #333) 5%, var(--bgcolor-white, #fff));
+}
+
+/* Image selected: preview + meta; dashed frame hugs content (no empty space on the right). */
+.pab-file-upload--image.pab-has-file .pab-file-upload-drop {
+    overflow: hidden;
+    width: fit-content;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.pab-file-upload--image.pab-has-file .pab-file-upload-panel {
+    display: flex;
+    width: var(--pab-upload-thumb-w);
+    max-width: 100%;
+    box-sizing: border-box;
+    flex-direction: column;
+    align-items: stretch;
+    text-align: left;
+    gap: 0;
+    padding: 0;
+}
+
+.pab-file-upload--image.pab-has-file .pab-file-upload-body {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    text-align: left;
+    flex: 0 0 auto;
+    min-width: 0;
+    padding: 10px 14px 12px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.pab-file-upload--image.pab-has-file .pab-file-upload-cta {
+    flex: 0 1 auto;
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.pab-file-upload--image.pab-has-file .pab-file-upload-cta-line {
+    display: none !important;
+}
+
+.pab-file-upload--image.pab-has-file .pab-file-upload-filename {
+    order: 1;
+}
+
+.pab-file-upload--image.pab-has-file .pab-file-upload-sub--replace {
+    order: 2;
+    margin-top: 0;
+}
+
+.pab-file-upload--image.pab-has-file .pab-file-upload-icon,
+.pab-file-upload--image.pab-has-file .pab-file-upload-title {
+    display: none;
+}
+
+.pab-file-upload-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    margin-bottom: 4px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--wd-primary-color, #333) 9%, var(--bgcolor-white, #fff));
+    color: var(--wd-primary-color, #444);
+}
+
+.pab-file-upload-title {
+    font-size: 0.9375em;
+    font-weight: 600;
+    color: var(--color-gray-900, #1a1a1a);
+    line-height: 1.3;
+}
+
+.pab-file-upload-sub {
+    font-size: 0.8125em;
+    color: var(--color-gray-600, #666);
+    opacity: 0.92;
+}
+
+.pab-file-upload-filename {
+    display: block;
+    margin-top: 10px;
+    padding: 6px 12px;
+    max-width: 100%;
+    font-size: 0.8125em;
+    font-weight: 500;
+    color: var(--color-gray-700, #444);
+    line-height: 1.35;
+    word-break: break-word;
+    border-radius: max(6px, 0.35em);
+    background: var(--bgcolor-white, #fff);
+    border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.pab-file-upload--image.pab-has-file .pab-file-upload-filename {
+    margin-top: 0;
+    padding: 4px 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+    font-weight: 600;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    word-break: break-word;
+}
+
+.pab-file-upload-preview {
+    flex-shrink: 0;
+    margin: 0;
+    position: relative;
+    overflow: hidden;
+    border-radius: max(8px, 0.35em);
+    border: 1px solid var(--brdcolor-gray-300, rgba(0, 0, 0, 0.12));
+    background: var(--bgcolor-white, #fff);
+}
+
+.pab-file-upload-preview[hidden] {
+    display: none !important;
+}
+
+/* Filled image: compact thumbnail (width follows --pab-upload-thumb-w via panel) */
+.pab-file-upload--image.pab-has-file .pab-file-upload-preview {
+    position: relative;
+    width: 100%;
+    height: var(--pab-upload-thumb-h, 96px);
+    max-height: var(--pab-upload-thumb-h, 96px);
+    min-height: 0;
+    border-radius: max(6px, 0.3em);
+    border: 1px solid var(--brdcolor-gray-300, rgba(0, 0, 0, 0.12));
+    background: var(--bgcolor-white, #fff);
+    box-sizing: border-box;
+}
+
+.pab-file-upload-preview-img {
+    display: block;
+    vertical-align: middle;
+}
+
+.pab-file-upload--image.pab-has-file .pab-file-upload-preview-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+}
+
+/* Option price (inline under choices); label row prices match label size via .pab-field-label .pab-opt-price */
+.pab-opt-price {
+    font-size: 0.85em;
+    opacity: 0.7;
+}
+
+/* -----------------------------------------------------------------------
+   Image swatches (size per field: Image Swatch row → Swatch size)
+----------------------------------------------------------------------- */
+.pab-field-wrap.pab-field-type-image_swatch {
+    --pab-addon-swatch-img: 50px;
+    --pab-addon-swatch-label-max: 54px;
+    --pab-addon-swatch-label-fs: 9px;
+    --pab-addon-swatch-gap: 8px;
+    --pab-addon-swatch-custom-cell-fs: 0.6rem;
+}
+
+.pab-field-wrap.pab-field-type-image_swatch.pab-swatch-size--small {
+    --pab-addon-swatch-img: 38px;
+    --pab-addon-swatch-label-max: 42px;
+    --pab-addon-swatch-label-fs: 8px;
+    --pab-addon-swatch-gap: 6px;
+    --pab-addon-swatch-custom-cell-fs: 0.55rem;
+}
+
+.pab-field-wrap.pab-field-type-image_swatch.pab-swatch-size--large {
+    --pab-addon-swatch-img: 68px;
+    --pab-addon-swatch-label-max: 74px;
+    --pab-addon-swatch-label-fs: 10px;
+    --pab-addon-swatch-gap: 10px;
+    --pab-addon-swatch-custom-cell-fs: 0.68rem;
+}
+
+.pab-field-wrap.pab-field-type-image_swatch .pab-image-swatch-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--pab-addon-swatch-gap, 8px);
+}
+
+.pab-field-wrap.pab-field-type-image_swatch .pab-swatch-item {
+    position: relative;
+    cursor: pointer;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+    transition: border-color 0.15s ease;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: var(--pab-addon-swatch-label-max, 64px);
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+.pab-field-wrap.pab-field-type-image_swatch .pab-swatch-item:hover {
+    border-color: #999;
+}
+
+.pab-field-wrap.pab-field-type-image_swatch .pab-swatch-item.pab-swatch-active {
+    border-color: #333;
+    box-shadow: 0 0 0 1px #333;
+}
+
+.pab-field-wrap.pab-field-type-image_swatch .pab-swatch-item--custom {
+    border-style: dashed;
+}
+
+/* Same footprint as .pab-swatch-img: top row, then .pab-swatch-label row (matches preset swatches). */
+.pab-field-wrap.pab-field-type-image_swatch .pab-swatch-custom-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    width: var(--pab-addon-swatch-img, 50px);
+    height: var(--pab-addon-swatch-img, 50px);
+    box-sizing: border-box;
+    flex-shrink: 0;
+    padding: 3px;
+    font-size: var(--pab-addon-swatch-custom-cell-fs, 0.65rem);
+    line-height: 1.2;
+    text-align: center;
+    word-break: break-word;
+    overflow: hidden;
+}
+
+/* Keeps total tile height aligned with image + caption rows on preset swatches. */
+.pab-field-wrap.pab-field-type-image_swatch .pab-swatch-label--custom-rail {
+    visibility: hidden;
+    white-space: nowrap;
+}
+
+.pab-field-wrap.pab-field-type-image_swatch .pab-swatch-item input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.pab-field-wrap.pab-field-type-image_swatch .pab-swatch-img {
+    display: block;
+    width: var(--pab-addon-swatch-img, 50px);
+    height: var(--pab-addon-swatch-img, 50px);
+    object-fit: contain;
+    object-position: center;
+    background: var(--pab-addon-swatch-img-bg, #f3f3f3);
+}
+
+.pab-field-wrap.pab-field-type-image_swatch .pab-swatch-custom-upload {
+    margin-top: 12px;
+    max-width: 100%;
+}
+
+.pab-field-wrap.pab-field-type-image_swatch .pab-swatch-custom-upload.pab-is-hidden {
+    display: none !important;
+}
+
+.pab-field-wrap.pab-field-type-image_swatch .pab-swatch-custom-upload__hint {
+    margin: 0 0 8px;
+    font-size: 0.875em;
+    color: #555;
+}
+
+.pab-field-wrap.pab-field-type-image_swatch .pab-file-upload--swatch-addon.pab-file-upload--image {
+    max-width: 420px;
+}
+
+.pab-field-wrap.pab-field-type-image_swatch .pab-swatch-label {
+    display: block;
+    font-size: var(--pab-addon-swatch-label-fs, 9px);
+    line-height: 1.15;
+    padding: 1px 2px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: var(--pab-addon-swatch-label-max, 54px);
+}
+
+/* -----------------------------------------------------------------------
+   Text swatches
+----------------------------------------------------------------------- */
+.pab-text-swatch-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.pab-text-swatch-item {
+    cursor: pointer;
+}
+
+.pab-text-swatch-item input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.pab-text-swatch-btn {
+    display: inline-block;
+    padding: 6px 12px;
+    border: 2px solid #ddd;
+    border-radius: 3px;
+    font-size: 0.875em;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    cursor: pointer;
+    user-select: none;
+}
+
+.pab-text-swatch-item:hover .pab-text-swatch-btn {
+    border-color: #999;
+}
+
+.pab-text-swatch-item input[type="radio"]:checked + .pab-text-swatch-btn {
+    border-color: #333;
+    background: #333;
+    color: #fff;
+}
+
+/* -----------------------------------------------------------------------
+   Child products — card layout
+----------------------------------------------------------------------- */
+.pab-child-wrap {
+    margin-bottom: 12px;
+    padding: 0;
+    border: 1px solid var(--brdcolor-gray-300, rgba(0, 0, 0, 0.12));
+    border-radius: var(--wd-brd-radius, max(4px, 0.35em));
+    background: var(--bgcolor-white, #fff);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pab-child-wrap:focus-within {
+    border-color: var(--brdcolor-gray-400, rgba(0, 0, 0, 0.2));
+}
+
+.pab-child-wrap.pab-child-selected {
+    border-color: var(--wd-primary-color, rgba(0, 0, 0, 0.22));
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--wd-primary-color, #000) 22%, transparent);
+}
+
+.pab-child-card {
+    display: flex;
+    gap: 14px;
+    align-items: stretch;
+    padding: 12px 14px;
+}
+
+/* —— Image swatch layout: image-only tiles; radio picks one; qty 1 via hidden field —— */
+.pab-child-swatch-group .pab-child-wrap {
+    margin-bottom: 0;
+    width: fit-content;
+    max-width: 100%;
+    flex: 0 0 auto;
+}
+
+/* Swatch tiles: no outer card border — only the image frame is outlined. */
+.pab-child-wrap.pab-child--swatch-exclusive,
+.pab-child-wrap.pab-child--swatch-exclusive.pab-child-selected,
+.pab-child-wrap.pab-child--swatch-exclusive:focus-within {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+}
+
+.pab-child--swatch-exclusive .pab-child-card--swatch {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 4px 2px;
+    gap: 8px;
+    height: 100%;
+}
+
+.pab-child-swatch-hitarea {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    cursor: pointer;
+    position: relative;
+}
+
+.pab-child-swatch-radio {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+.pab-child-card--swatch-only .pab-child-media--swatch {
+    width: 80px;
+    max-width: 80px;
+    margin: 0;
+    border: 1px solid var(--brdcolor-gray-300, rgba(0, 0, 0, 0.15));
+    background: var(--bgcolor-white, #fff);
+    border-radius: max(6px, 0.35em);
+    overflow: hidden;
+    transition: border-color 0.2s ease, border-width 0.2s ease;
+    box-sizing: border-box;
+}
+
+.pab-child-wrap.pab-child--swatch-exclusive.pab-child-selected .pab-child-media--swatch {
+    border-color: var(--wd-primary-color, rgba(0, 0, 0, 0.5));
+    border-width: 2px;
+}
+
+.pab-child--swatch-exclusive .pab-child-thumb-img {
+    aspect-ratio: 1;
+}
+
+.pab-child-swatch-price-row {
+    display: block;
+    width: 100%;
+    text-align: center;
+    font-size: 0.8125em;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--wd-primary-color, inherit);
+}
+
+.pab-child-swatch-price-row .pab-child-price {
+    display: inline-block;
+}
+
+.pab-child-swatch-price-row .pab-child-price .woocommerce-Price-amount {
+    color: inherit;
+}
+
+.pab-child--swatch-exclusive .pab-child-swatch-meta {
+    width: 100%;
+    text-align: left;
+}
+
+.pab-child--swatch-exclusive:not(.pab-child-selected) .pab-child-swatch-meta {
+    display: none;
+}
+
+.pab-child--swatch-exclusive .pab-child-variation-wrap select {
+    width: 100%;
+    max-width: 100%;
+    font-size: 0.8125em;
+}
+
+/* —— Product card layout —— */
+.pab-child-card--product {
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+    height: 100%;
+}
+
+.pab-child-media--card {
+    width: 100%;
+    max-width: none;
+    border: none;
+    border-radius: 0;
+    aspect-ratio: 4 / 3;
+}
+
+.pab-child-media--card .pab-child-thumb-img {
+    aspect-ratio: 4 / 3;
+}
+
+.pab-child-card-body {
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    flex: 1;
+    min-height: 0;
+}
+
+.pab-child-card-body .pab-child-title-row {
+    margin-bottom: 6px;
+}
+
+.pab-child-card-body .pab-child-price-row {
+    margin-bottom: 8px;
+}
+
+.pab-child-card-footer {
+    margin-top: auto;
+    padding-top: 12px;
+}
+
+.pab-child-card-footer .wd-pab-child-actions {
+    justify-content: flex-start;
+}
+
+.pab-child-media {
+    flex: 0 0 auto;
+    width: 72px;
+    max-width: 22vw;
+    border-radius: max(3px, 0.25em);
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+    background: color-mix(in srgb, currentColor 5%, #fff);
+    align-self: flex-start;
+}
+
+.pab-child-media img,
+.pab-child-thumb-img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    object-fit: cover;
+}
+
+.pab-child-main {
+    flex: 1 1 auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+    align-items: flex-start;
+    justify-content: space-between;
+    min-width: 0;
+}
+
+.pab-child-text {
+    flex: 1 1 160px;
+    min-width: 0;
+}
+
+.pab-child-title-row {
+    margin-bottom: 4px;
+}
+
+.pab-child-name {
+    font-weight: 600;
+    font-size: 1em;
+    line-height: 1.35;
+}
+
+.pab-child-excerpt {
+    margin: 0 0 8px;
+    font-size: 0.8125em;
+    line-height: 1.45;
+    opacity: 0.78;
+}
+
+.pab-child-variation-wrap {
+    margin-top: 4px;
+}
+
+.pab-child-variation-label {
+    display: block;
+    margin: 0;
+}
+
+.pab-child-variation-wrap select {
+    width: 100%;
+    max-width: 100%;
+    margin-top: 2px;
+}
+
+.pab-child-actions {
+    flex: 0 1 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    text-align: right;
+}
+
+.pab-child-price-row {
+    min-height: 1.2em;
+}
+
+.pab-child-price {
+    font-size: 0.9375em;
+    font-weight: 600;
+    color: var(--wd-primary-color, inherit);
+    white-space: nowrap;
+}
+
+.pab-child-price .woocommerce-Price-amount {
+    color: inherit;
+}
+
+.pab-child-control {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.pab-child-included {
+    font-size: 0.875em;
+    font-weight: 600;
+    opacity: 0.75;
+}
+
+/* Woodmart-style: .quantity + .single_add_to_cart_button + icon action */
+.pab-child-control--buttons.wd-pab-child-actions {
+    position: relative;
+    width: 100%;
+    gap: 10px 14px;
+}
+
+.pab-child-control--buttons .pab-child-quantity-wrap.quantity {
+    margin: 0;
+}
+
+.pab-child-control--buttons .single_add_to_cart_button.pab-child-add-btn {
+    margin: 0;
+    width: auto;
+    flex: 0 0 auto;
+}
+
+.pab-child-wrap.pab-child--extras-confirmed .pab-child-add-btn {
+    display: none !important;
+}
+
+.pab-child-remove-wrap.wd-action-btn.wd-style-icon {
+    flex: 0 0 auto;
+}
+
+.pab-child-remove-wrap .pab-child-remove-btn.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 42px;
+    min-height: 42px;
+    padding: 0;
+    margin: 0;
+    line-height: 1;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--color-gray-800, #333);
+    box-shadow: none;
+}
+
+.pab-child-remove-wrap .pab-child-remove-btn:hover:not(:disabled) {
+    color: var(--wd-primary-color, #c77a5a);
+    background: transparent;
+    box-shadow: none;
+}
+
+.pab-child-remove-wrap .pab-child-remove-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.pab-child-remove-icon {
+    display: block;
+    flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+    .pab-children-layout--product_card {
+        grid-template-columns: 1fr;
+    }
+
+    .pab-child-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .pab-child-media {
+        width: 100%;
+        max-width: none;
+        aspect-ratio: 16 / 9;
+    }
+
+    .pab-child-media img,
+    .pab-child-thumb-img {
+        aspect-ratio: 16 / 9;
+    }
+
+    .pab-child--swatch-exclusive .pab-child-media--swatch,
+    .pab-child--swatch-exclusive .pab-child-thumb-img {
+        aspect-ratio: 1;
+    }
+
+    .pab-child--swatch-exclusive .pab-child-media--swatch {
+        width: 80px;
+        max-width: 80px;
+    }
+
+    .pab-child-actions {
+        align-items: stretch;
+        text-align: left;
+        width: 100%;
+    }
+
+    .pab-child-control,
+    .pab-child-control--buttons.wd-pab-child-actions {
+        justify-content: flex-start;
+    }
+
+    .pab-child-control--buttons.wd-pab-child-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .pab-child-control--buttons .single_add_to_cart_button.pab-child-add-btn {
+        width: 100%;
+    }
+}
+
+/* -----------------------------------------------------------------------
+   Live total
+----------------------------------------------------------------------- */
+.pab-live-total-wrap {
+    margin: 16px 0 10px;
+    padding: 12px 16px;
+    background: var(--bgcolor-gray-100, rgba(0, 0, 0, 0.04));
+    border-radius: var(--wd-brd-radius, 4px);
+    border: 1px solid var(--brdcolor-gray-300, transparent);
+}
+
+.pab-live-total-label {
+    margin-right: 4px;
+}
+
+#pab-live-total {
+    font-size: 1.1em;
+    font-weight: 700;
+}
+
+/* Hidden by conditional rules */
+.pab-rule-hidden {
+    display: none !important;
+}
