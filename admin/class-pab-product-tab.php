@@ -29,11 +29,6 @@ class PAB_Product_Tab {
 
 	private function render_group_assignments_section() {
 		$rows = $this->group_assignments;
-		$rows[] = [
-			'group_id' => 0,
-			'priority' => 100,
-			'status'   => 'enabled',
-		];
 		?>
 		<div class="options_group">
 			<p class="form-field pab-section-intro">
@@ -43,12 +38,13 @@ class PAB_Product_Tab {
 			<?php if ( empty( $this->available_groups ) ) : ?>
 				<p class="form-field"><span class="description"><?php esc_html_e( 'No groups available yet. Create them in WooCommerce -> Product Addons & Bundles -> Addon Groups.', 'pab' ); ?></span></p>
 			<?php else : ?>
-				<table class="widefat striped" style="margin-bottom:16px;">
+				<table class="widefat striped pab-assignments-table">
 					<thead>
 						<tr>
 							<th><?php esc_html_e( 'Group', 'pab' ); ?></th>
 							<th><?php esc_html_e( 'Priority', 'pab' ); ?></th>
 							<th><?php esc_html_e( 'Enabled', 'pab' ); ?></th>
+							<th></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -66,10 +62,14 @@ class PAB_Product_Tab {
 								</td>
 								<td><input type="number" class="small-text" name="pab_product_group_assignments[<?php echo esc_attr( (string) $index ); ?>][priority]" value="<?php echo esc_attr( (string) ( $row['priority'] ?? 100 ) ); ?>" /></td>
 								<td><input type="checkbox" name="pab_product_group_assignments[<?php echo esc_attr( (string) $index ); ?>][status]" value="1" <?php checked( ( $row['status'] ?? 'enabled' ), 'enabled' ); ?> /></td>
+								<td><a href="#" class="pab-remove-assignment-row" aria-label="<?php esc_attr_e( 'Remove this assignment', 'pab' ); ?>"><?php esc_html_e( 'Remove', 'pab' ); ?></a></td>
 							</tr>
 						<?php endforeach; ?>
 					</tbody>
 				</table>
+				<p class="form-field">
+					<button type="button" class="button button-secondary" id="pab-add-group-assignment"><?php esc_html_e( 'Add group assignment', 'pab' ); ?></button>
+				</p>
 			<?php endif; ?>
 		</div>
 		<?php
@@ -88,7 +88,7 @@ class PAB_Product_Tab {
 			<div class="pab-field-builder">
 				<div class="pab-field-builder__toolbar">
 					<label for="pab-addon-new-field-type" class="screen-reader-text"><?php esc_html_e( 'Field type to add', 'pab' ); ?></label>
-					<select id="pab-addon-new-field-type" class="wc-enhanced-select pab-field-builder__type-select" style="width: 260px;">
+					<select id="pab-addon-new-field-type" class="wc-enhanced-select pab-field-builder__type-select">
 						<option value="text"><?php esc_html_e( 'Text Input', 'pab' ); ?></option>
 						<option value="textarea"><?php esc_html_e( 'Textarea', 'pab' ); ?></option>
 						<option value="select"><?php esc_html_e( 'Select Dropdown', 'pab' ); ?></option>
@@ -195,7 +195,7 @@ class PAB_Product_Tab {
 		?>
 		<div class="pab-settings-card pab-addon-row" data-index="<?php echo esc_attr( $index ); ?>" data-field-id="<?php echo esc_attr( $field_id ); ?>">
 			<div class="pab-settings-card__header pab-addon-row__header">
-				<span class="dashicons dashicons-move pab-drag-handle" aria-hidden="true"></span>
+				<span class="dashicons dashicons-move pab-drag-handle" aria-hidden="true"></span><button type="button" class="pab-move-btn pab-move-up" aria-label="Move up" title="Move up">▲</button><button type="button" class="pab-move-btn pab-move-down" aria-label="Move down" title="Move down">▼</button>
 				<div class="pab-addon-row__summary">
 					<span class="pab-field-builder__title pab-row-label"><?php echo esc_html( $display_title ); ?></span>
 					<code class="pab-field-builder__key"<?php echo $display_key === '' ? ' style="display: none;"' : ''; ?>><?php echo $display_key !== '' ? esc_html( $display_key ) : ''; ?></code>
@@ -203,7 +203,7 @@ class PAB_Product_Tab {
 				<span class="pab-field-type-badge"><?php echo esc_html( $type_label ); ?></span>
 				<div class="pab-addon-row__actions">
 					<button type="button" class="button-link pab-duplicate-addon-row"><?php esc_html_e( 'Duplicate', 'pab' ); ?></button>
-					<button type="button" class="button-link-delete pab-remove-row"><?php esc_html_e( 'Delete', 'pab' ); ?></button>
+					<button type="button" class="button-link-delete pab-remove-row" aria-label="<?php esc_attr_e( 'Delete add-on field', 'pab' ); ?>"><?php esc_html_e( 'Delete', 'pab' ); ?></button>
 					<button type="button" class="button button-small pab-settings-card__toggle" aria-expanded="<?php echo esc_attr( $toggle_expanded ); ?>" aria-label="<?php esc_attr_e( 'Expand or collapse field settings', 'pab' ); ?>">
 						<span class="<?php echo esc_attr( $toggle_icon_cls ); ?>" aria-hidden="true"></span>
 					</button>
@@ -468,7 +468,7 @@ class PAB_Product_Tab {
 		?>
 		<div class="pab-settings-card pab-child-row" data-index="<?php echo esc_attr( $index ); ?>">
 			<div class="pab-settings-card__header">
-				<span class="dashicons dashicons-move pab-drag-handle" aria-hidden="true"></span>
+				<span class="dashicons dashicons-move pab-drag-handle" aria-hidden="true"></span><button type="button" class="pab-move-btn pab-move-up" aria-label="Move up" title="Move up">▲</button><button type="button" class="pab-move-btn pab-move-down" aria-label="Move down" title="Move down">▼</button>
 				<span class="pab-settings-card__title pab-row-label"><?php echo $product_name ? esc_html( $product_name ) : esc_html__( 'New Child Product', 'pab' ); ?></span>
 				<button type="button" class="button button-small pab-settings-card__toggle" aria-expanded="true" aria-label="<?php esc_attr_e( 'Expand or collapse this panel', 'pab' ); ?>">
 					<span class="dashicons dashicons-arrow-down-alt2" aria-hidden="true"></span>
@@ -478,7 +478,6 @@ class PAB_Product_Tab {
 				<p class="form-field pab-field-line">
 					<label><?php esc_html_e( 'Product', 'pab' ); ?></label>
 					<select class="pab-child-product-select wc-product-search short"
-						style="width: 50%; max-width: 400px;"
 						name="pab_child_products[<?php echo esc_attr( $index ); ?>][product_id]"
 						data-placeholder="<?php esc_attr_e( 'Search for a product…', 'pab' ); ?>"
 						data-action="woocommerce_json_search_products_and_variations"
@@ -531,7 +530,7 @@ class PAB_Product_Tab {
 				</p>
 
 				<p class="form-field pab-remove-field-wrap">
-					<button type="button" class="button-link-delete pab-remove-row"><?php esc_html_e( 'Remove child product', 'pab' ); ?></button>
+					<button type="button" class="button-link-delete pab-remove-row" aria-label="<?php esc_attr_e( 'Remove child product', 'pab' ); ?>"><?php esc_html_e( 'Remove child product', 'pab' ); ?></button>
 				</p>
 			</div>
 		</div>
@@ -601,7 +600,7 @@ class PAB_Product_Tab {
 		?>
 		<div class="pab-settings-card pab-rule-row" data-index="<?php echo esc_attr( $index ); ?>">
 			<div class="pab-settings-card__header">
-				<span class="dashicons dashicons-move pab-drag-handle" aria-hidden="true"></span>
+				<span class="dashicons dashicons-move pab-drag-handle" aria-hidden="true"></span><button type="button" class="pab-move-btn pab-move-up" aria-label="Move up" title="Move up">▲</button><button type="button" class="pab-move-btn pab-move-down" aria-label="Move down" title="Move down">▼</button>
 				<span class="pab-settings-card__title pab-row-label"><?php echo esc_html__( 'Rule', 'pab' ) . ' #' . esc_html( is_numeric( $index ) ? $index : '' ); ?></span>
 				<button type="button" class="button button-small pab-settings-card__toggle" aria-expanded="true" aria-label="<?php esc_attr_e( 'Expand or collapse this panel', 'pab' ); ?>">
 					<span class="dashicons dashicons-arrow-down-alt2" aria-hidden="true"></span>
@@ -653,7 +652,7 @@ class PAB_Product_Tab {
 						value="<?php echo esc_attr( $action_amount ); ?>"<?php disabled( $is_template, true ); ?> />
 				</p>
 				<p class="form-field pab-remove-field-wrap">
-					<button type="button" class="button-link-delete pab-remove-row"><?php esc_html_e( 'Remove rule', 'pab' ); ?></button>
+					<button type="button" class="button-link-delete pab-remove-row" aria-label="<?php esc_attr_e( 'Remove rule', 'pab' ); ?>"><?php esc_html_e( 'Remove rule', 'pab' ); ?></button>
 				</p>
 			</div>
 		</div>

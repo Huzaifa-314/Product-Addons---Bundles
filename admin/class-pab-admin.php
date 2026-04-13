@@ -104,6 +104,13 @@ class PAB_Admin {
 			'searchProductsNonce' => wp_create_nonce( 'search-products' ),
 			'i18n'                => [
 				'removeAssignmentConfirm' => __( 'Remove this assignment row?', 'pab' ),
+				'removeAddonConfirm'      => __( 'Delete this add-on field? Its options will be lost.', 'pab' ),
+				'removeChildConfirm'      => __( 'Remove this child product?', 'pab' ),
+				'removeRuleConfirm'       => __( 'Remove this conditional rule?', 'pab' ),
+				'removeOptionConfirm'     => __( 'Remove this choice?', 'pab' ),
+				'unsavedChanges'          => __( 'You have unsaved changes. Are you sure you want to leave?', 'pab' ),
+				'requiredField'           => __( 'This field is required.', 'pab' ),
+				'ajaxError'               => __( 'An error occurred. Please try again.', 'pab' ),
 			],
 		];
 
@@ -263,7 +270,7 @@ class PAB_Admin {
 		</p>
 		<p>
 			<label for="pab-group-products"><strong><?php esc_html_e( 'Products', 'pab' ); ?></strong></label><br/>
-			<select id="pab-group-products" class="wc-product-search" name="pab_group_products[]" multiple="multiple" style="width:100%;" data-placeholder="<?php esc_attr_e( 'Search for products…', 'pab' ); ?>" data-action="woocommerce_json_search_products_and_variations">
+			<select id="pab-group-products" class="wc-product-search pab-group-products-select" name="pab_group_products[]" multiple="multiple" data-placeholder="<?php esc_attr_e( 'Search for products…', 'pab' ); ?>" data-action="woocommerce_json_search_products_and_variations">
 				<?php foreach ( $product_ids as $product_id ) : ?>
 					<?php $product = wc_get_product( $product_id ); ?>
 					<?php if ( $product ) : ?>
@@ -277,7 +284,7 @@ class PAB_Admin {
 			<p><strong><?php esc_html_e( 'Location rules', 'pab' ); ?></strong></p>
 			<p class="description"><?php esc_html_e( 'Optional: target products by category, tag, type, or other product taxonomies (ACF-style).', 'pab' ); ?></p>
 			<p class="pab-location-rules-match">
-				<span class="description" style="margin-right:12px;"><?php esc_html_e( 'Rule matching:', 'pab' ); ?></span>
+				<span class="description pab-location-rules-match__label"><?php esc_html_e( 'Rule matching:', 'pab' ); ?></span>
 				<label><input type="radio" name="pab_group_location_rules[match]" value="all" <?php checked( $location_rules['match'], 'all' ); ?> /> <?php esc_html_e( 'Match all rules', 'pab' ); ?></label>
 				&nbsp;&nbsp;
 				<label><input type="radio" name="pab_group_location_rules[match]" value="any" <?php checked( $location_rules['match'], 'any' ); ?> /> <?php esc_html_e( 'Match any rule', 'pab' ); ?></label>
@@ -308,12 +315,28 @@ class PAB_Admin {
 				<p class="description"><?php esc_html_e( 'No product taxonomies are available for location rules.', 'pab' ); ?></p>
 			<?php endif; ?>
 		</div>
+		<?php $this->render_location_rule_template( $taxonomies ); ?>
 		<?php
 	}
 
 	/**
+	 * Render the JS template for location rule rows.
+	 * Uses cloneTemplate() in admin.js instead of string concatenation.
+	 *
 	 * @param array<string,string> $taxonomies
 	 */
+	private function render_location_rule_template( array $taxonomies ): void {
+		if ( empty( $taxonomies ) ) {
+			return;
+		}
+		$default_tax = array_key_first( $taxonomies ) ?: 'product_cat';
+		?>
+		<script type="text/html" id="pab-tmpl-location-rule-row">
+			<?php $this->render_location_rule_row( '__PAB_LOCATION_RULE_INDEX__', $default_tax, '==', 0, '', $taxonomies ); ?>
+		</script>
+		<?php
+	}
+
 	private function render_location_rule_row( $index, string $param, string $operator, int $term_id, string $term_label, array $taxonomies ): void {
 		if ( empty( $taxonomies ) ) {
 			return;
@@ -344,7 +367,6 @@ class PAB_Admin {
 					data-taxonomy="<?php echo esc_attr( $param ); ?>"
 					data-minimum_input_length="2"
 					data-return_id="true"
-					style="width:100%;min-width:200px;"
 				>
 					<?php if ( $term_id && $term_label !== '' ) : ?>
 						<option value="<?php echo esc_attr( (string) $term_id ); ?>" selected="selected"><?php echo esc_html( $term_label ); ?></option>
@@ -416,9 +438,6 @@ class PAB_Admin {
 		}
 	}
 
-	private function handle_save_assignments() {
-		// Deprecated after moving assignment into Addon Group edit screen.
-	}
 
 	/**
 	 * @param array<string,mixed> $post_rules

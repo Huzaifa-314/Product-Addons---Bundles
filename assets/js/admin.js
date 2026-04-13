@@ -13,6 +13,7 @@
 	var PH_FIELD_ID = '__PAB_FIELD_ID__';
 	var PH_OPT_ID = '__PAB_OPT_ID__';
 	var PH_RULE_ID = '__PAB_RULE_ID__';
+	var PH_LOCATION_RULE = '__PAB_LOCATION_RULE_INDEX__';
 	var OPTION_TYPES = ['select', 'radio', 'image_swatch', 'text_swatch'];
 	var FIELD_NAME_RE = /pab_addon_fields\[\d+]/g;
 	var OPTION_NAME_RE = /pab_addon_fields\[\d+]\[options]\[\d+]/g;
@@ -37,6 +38,10 @@
 			html = html.replace(new RegExp(escapeRegExp(ph), 'g'), value);
 		});
 		return $(html);
+	}
+
+	function i18n(key, fallback) {
+		return (pabAdmin.i18n && pabAdmin.i18n[key]) || fallback;
 	}
 
 	function initIndexes() {
@@ -92,6 +97,7 @@
 			});
 		});
 		addonIndex = $('#pab-addon-fields-list .pab-addon-row').length;
+		updateEmptyStates();
 	}
 
 	function reindexChildRows() {
@@ -99,6 +105,7 @@
 			return value.replace(CHILD_NAME_RE, 'pab_child_products[' + idx + ']');
 		});
 		childIndex = $('#pab-child-products-list .pab-child-row').length;
+		updateEmptyStates();
 	}
 
 	function reindexRuleRows() {
@@ -109,6 +116,7 @@
 			$(this).find('.pab-row-label').text('Rule #' + (i + 1));
 		});
 		ruleIndex = $('#pab-rules-list .pab-rule-row').length;
+		updateEmptyStates();
 	}
 
 	function ensureOptionsHead($addonRow) {
@@ -238,12 +246,16 @@
 		initAddonRow($dup);
 		syncOptionsLayout($dup);
 		syncSwatchFieldSettings($dup);
+		// Expand new row, collapse others
+		$('#pab-addon-fields-list .pab-addon-row').not($dup).children('.pab-settings-card__body').hide();
+		$('#pab-addon-fields-list .pab-addon-row').not($dup).find('.pab-settings-card__toggle').attr('aria-expanded', 'false').find('.dashicons').removeClass('dashicons-arrow-down-alt2').addClass('dashicons-arrow-right-alt2');
 		var $body = $dup.children('.pab-settings-card__body');
 		$body.show();
 		$dup.find('.pab-settings-card__toggle').attr('aria-expanded', 'true').find('.dashicons').removeClass('dashicons-arrow-right-alt2').addClass('dashicons-arrow-down-alt2');
 		updateAddonRowChrome($dup);
 		updateRuleFieldDropdowns();
 		$dup.find('.pab-field-label').trigger('focus');
+		markFormDirty();
 	}
 
 	function addAddonRow() {
@@ -258,6 +270,7 @@
 		$row.find('input, select, textarea').prop('disabled', false);
 		$row.find('.pab-field-type').val(selectedType);
 		toggleOptionsSection($row, selectedType);
+		// Collapse all existing rows, expand the new one
 		$('#pab-addon-fields-list .pab-addon-row').children('.pab-settings-card__body').hide();
 		$('#pab-addon-fields-list .pab-addon-row').find('.pab-settings-card__toggle').attr('aria-expanded', 'false').find('.dashicons').removeClass('dashicons-arrow-down-alt2').addClass('dashicons-arrow-right-alt2');
 		$('#pab-addon-fields-list').append($row);
@@ -269,6 +282,7 @@
 		reindexAddonRows();
 		updateRuleFieldDropdowns();
 		$row.find('.pab-field-label').trigger('focus');
+		markFormDirty();
 	}
 
 	function addOptionRow($addonRow) {
@@ -283,6 +297,7 @@
 		$opt.find('input, select, textarea').prop('disabled', false);
 		$addonRow.find('.pab-options-list').append($opt);
 		syncOptionsLayout($addonRow);
+		markFormDirty();
 	}
 
 	function productSearchNonce() {
@@ -367,6 +382,15 @@
 		}).on('select2:select', function (e) {
 			var $thisRow = $(this).closest('.pab-child-row');
 			$thisRow.find('.pab-row-label').text(e.params.data.text || 'New Child Product');
+			// Show spinner before AJAX
+			var $spinnerWrap = $thisRow.find('.pab-variation-spinner');
+			if (!$spinnerWrap.length) {
+				$spinnerWrap = $('<span class="pab-spinner-wrap"><span class="spinner is-active"></span></span>');
+				$thisRow.find('.pab-variation-section').before($spinnerWrap);
+			} else {
+				$spinnerWrap.find('.spinner').addClass('is-active');
+				$spinnerWrap.show();
+			}
 			$.post(
 				pabAdmin.ajaxUrl,
 				{
@@ -375,6 +399,7 @@
 					nonce: pabAdmin.nonce,
 				},
 				function (response) {
+					$spinnerWrap.hide();
 					if (response.success && response.data && response.data.length) {
 						$thisRow.find('.pab-child-is-variable').val('1');
 						$thisRow.find('.pab-variation-section').removeClass('pab-is-hidden');
@@ -385,8 +410,28 @@
 						$thisRow.find('.pab-variation-list').empty();
 					}
 				}
-			);
+			).fail(function () {
+				$spinnerWrap.hide();
+				var $notice = $('<div class="notice notice-error is-dismissible pab-ajax-error-notice"><p>' + i18n('ajaxError', 'An error occurred. Please try again.') + '</p></div>');
+				$thisRow.find('.pab-variation-section').before($notice);
+				setTimeout(function () { $notice.fadeOut(function () { $notice.remove(); }); }, 5000);
+			});
+			markFormDirty();
 		});
+	}
+
+	/**
+	 * Collapse all siblings and expand the new row — consistent accordion for all row types.
+	 */
+	function collapseSiblingsAndExpand($newRow, listSelector, bodySelector) {
+		$(listSelector).find('.pab-settings-card').not($newRow).each(function () {
+			var $card = $(this);
+			$card.children(bodySelector).hide();
+			$card.find('.pab-settings-card__toggle').attr('aria-expanded', 'false').find('.dashicons').removeClass('dashicons-arrow-down-alt2').addClass('dashicons-arrow-right-alt2');
+		});
+		var $body = $newRow.children(bodySelector);
+		$body.show();
+		$newRow.find('.pab-settings-card__toggle').attr('aria-expanded', 'true').find('.dashicons').removeClass('dashicons-arrow-right-alt2').addClass('dashicons-arrow-down-alt2');
 	}
 
 	function addChildRow() {
@@ -394,8 +439,12 @@
 		$row.attr('data-index', childIndex);
 		$row.find('input,select,textarea').prop('disabled', false);
 		$('#pab-child-products-list').append($row);
+		// Standardized accordion: collapse siblings, expand new row
+		collapseSiblingsAndExpand($row, '#pab-child-products-list', '.pab-settings-card__body');
 		initChildProductSearch($row);
 		childIndex++;
+		updateEmptyStates();
+		markFormDirty();
 	}
 
 	function addonFieldModels() {
@@ -451,14 +500,48 @@
 		$row.find('input,select,textarea').prop('disabled', false);
 		$row.find('.pab-row-label').text('Rule #' + (ruleIndex + 1));
 		$('#pab-rules-list').append($row);
+		// Standardized accordion: collapse siblings, expand new row
+		collapseSiblingsAndExpand($row, '#pab-rules-list', '.pab-settings-card__body');
 		initRuleRow($row);
 		ruleIndex++;
+		updateEmptyStates();
+		markFormDirty();
 	}
 
 	function initSearchFilter() {
 		if ($.fn.selectWoo) {
 			$('#pab-addon-new-field-type').filter(':not(.enhanced)').trigger('wc-enhanced-select-init');
 		}
+	}
+
+	/* ---- Keyboard reorder (move up / down) ---- */
+
+	function moveRowUp($row) {
+		var $prev = $row.prev('.pab-addon-row, .pab-child-row, .pab-rule-row');
+		if ($prev.length) {
+			$prev.before($row);
+			reindexAfterSort($row);
+		}
+	}
+
+	function moveRowDown($row) {
+		var $next = $row.next('.pab-addon-row, .pab-child-row, .pab-rule-row');
+		if ($next.length) {
+			$next.after($row);
+			reindexAfterSort($row);
+		}
+	}
+
+	function reindexAfterSort($row) {
+		if ($row.hasClass('pab-addon-row')) {
+			reindexAddonRows();
+			updateRuleFieldDropdowns();
+		} else if ($row.hasClass('pab-child-row')) {
+			reindexChildRows();
+		} else if ($row.hasClass('pab-rule-row')) {
+			reindexRuleRows();
+		}
+		markFormDirty();
 	}
 
 	function initSortable() {
@@ -492,6 +575,88 @@
 		});
 	}
 
+	/* ---- Empty state placeholders ---- */
+
+	function updateEmptyStates() {
+		// Addon fields
+		var $addonList = $('#pab-addon-fields-list');
+		var $addonEmpty = $addonList.find('.pab-empty-state');
+		if (!$addonList.find('.pab-addon-row').length) {
+			if (!$addonEmpty.length) {
+				$addonList.append('<div class="pab-empty-state">' + i18n('emptyAddonFields', 'Add your first add-on field using the toolbar above.') + '</div>');
+			}
+		} else {
+			$addonEmpty.remove();
+		}
+
+		// Child products
+		var $childList = $('#pab-child-products-list');
+		var $childEmpty = $childList.find('.pab-empty-state');
+		if (!$childList.find('.pab-child-row').length) {
+			if (!$childEmpty.length) {
+				$childList.append('<div class="pab-empty-state">' + i18n('emptyChildProducts', 'Add a child product using the button below.') + '</div>');
+			}
+		} else {
+			$childEmpty.remove();
+		}
+
+		// Conditional rules
+		var $ruleList = $('#pab-rules-list');
+		var $ruleEmpty = $ruleList.find('.pab-empty-state');
+		if (!$ruleList.find('.pab-rule-row').length) {
+			if (!$ruleEmpty.length) {
+				$ruleList.append('<div class="pab-empty-state">' + i18n('emptyRules', 'Add a conditional rule using the button below.') + '</div>');
+			}
+		} else {
+			$ruleEmpty.remove();
+		}
+	}
+
+	/* ---- Unsaved changes tracking ---- */
+
+	var formDirty = false;
+
+	function markFormDirty() {
+		formDirty = true;
+	}
+
+	function initUnsavedChangesWarning() {
+		$(document).on('input change', '#pab_addons_data input, #pab_addons_data select, #pab_addons_data textarea, ' +
+			'#pab_group_addons input, #pab_group_addons select, #pab_group_addons textarea', function () {
+			formDirty = true;
+		});
+
+		$(window).on('beforeunload', function (e) {
+			if (formDirty) {
+				e.preventDefault();
+				return i18n('unsavedChanges', 'You have unsaved changes. Are you sure you want to leave?');
+			}
+		});
+
+		// Clear dirty flag on form submit (saving)
+		$('#post').on('submit', function () {
+			formDirty = false;
+		});
+	}
+
+	/* ---- Client-side validation ---- */
+
+	function validateRequiredFields() {
+		var valid = true;
+		$('#pab_addons_data .pab-field-label, #pab_group_addons .pab-field-label').each(function () {
+			var $input = $(this);
+			if (!$input.val() || !$input.val().trim()) {
+				$input.addClass('pab-field-error');
+				valid = false;
+			} else {
+				$input.removeClass('pab-field-error');
+			}
+		});
+		return valid;
+	}
+
+	/* ---- Click handlers ---- */
+
 	$(document).on('click', '.pab-add-option', function () {
 		addOptionRow($(this).closest('.pab-addon-row'));
 	});
@@ -501,11 +666,27 @@
 
 	$(document).on('click', '.pab-remove-row', function (e) {
 		e.preventDefault();
-		$(this).closest('.pab-settings-card').remove();
+		var $card = $(this).closest('.pab-settings-card');
+		var confirmMsg;
+
+		if ($card.hasClass('pab-addon-row')) {
+			confirmMsg = i18n('removeAddonConfirm', 'Delete this add-on field? Its options will be lost.');
+		} else if ($card.hasClass('pab-child-row')) {
+			confirmMsg = i18n('removeChildConfirm', 'Remove this child product?');
+		} else if ($card.hasClass('pab-rule-row')) {
+			confirmMsg = i18n('removeRuleConfirm', 'Remove this conditional rule?');
+		}
+
+		if (confirmMsg && !window.confirm(confirmMsg)) {
+			return;
+		}
+
+		$card.remove();
 		reindexAddonRows();
 		reindexChildRows();
 		reindexRuleRows();
 		updateRuleFieldDropdowns();
+		markFormDirty();
 	});
 
 	$(document).on('click', '.pab-duplicate-addon-row', function (e) {
@@ -526,8 +707,12 @@
 
 	$(document).on('click', '.pab-remove-option', function (e) {
 		e.preventDefault();
+		if (!window.confirm(i18n('removeOptionConfirm', 'Remove this choice?'))) {
+			return;
+		}
 		$(this).closest('.pab-option-line').remove();
 		reindexAddonRows();
+		markFormDirty();
 	});
 
 	$(document).on('click', '#pab_addons_data .pab-settings-card__toggle, #pab_group_addons .pab-settings-card__toggle', function (e) {
@@ -541,25 +726,41 @@
 		$btn.find('.dashicons').toggleClass('dashicons-arrow-down-alt2', open).toggleClass('dashicons-arrow-right-alt2', !open);
 	});
 
-	var mediaFrame;
+	/* ---- Media frame (fixed closure bug) ---- */
+
 	$(document).on('click', '.pab-select-image', function (e) {
 		e.preventDefault();
 		var $row = $(this).closest('.pab-option-line');
 		var $hidden = $row.find('.pab-option-image-url');
 		var $preview = $row.find('.pab-option-preview');
-		if (mediaFrame) {
-			mediaFrame.open();
-			return;
-		}
-		mediaFrame = wp.media({ title: 'Select Swatch Image', button: { text: 'Use this image' }, multiple: false });
+
+		// Always create a new frame to avoid closure bugs with stale $hidden/$preview
+		var mediaFrame = wp.media({ title: 'Select Swatch Image', button: { text: 'Use this image' }, multiple: false });
 		mediaFrame.on('select', function () {
 			var attachment = mediaFrame.state().get('selection').first().toJSON();
 			$hidden.val(attachment.url);
 			$preview.attr('src', attachment.url).removeClass('is-empty').show();
 			mediaFrame = null;
+			markFormDirty();
 		});
 		mediaFrame.open();
 	});
+
+	/* ---- Keyboard reorder buttons ---- */
+
+	$(document).on('click', '.pab-move-up', function (e) {
+		e.preventDefault();
+		e.stopPropagation();
+		moveRowUp($(this).closest('.pab-addon-row, .pab-child-row, .pab-rule-row'));
+	});
+
+	$(document).on('click', '.pab-move-down', function (e) {
+		e.preventDefault();
+		e.stopPropagation();
+		moveRowDown($(this).closest('.pab-addon-row, .pab-child-row, .pab-rule-row'));
+	});
+
+	/* ---- Assignment row management (product tab) ---- */
 
 	function reindexAssignmentRows() {
 		$('#pab-assignments-rows .pab-assignment-row').each(function (idx) {
@@ -608,7 +809,7 @@
 
 	$(document).on('click', '.pab-remove-assignment-row', function (e) {
 		e.preventDefault();
-		if (!window.confirm((pabAdmin.i18n && pabAdmin.i18n.removeAssignmentConfirm) || 'Remove this assignment row?')) {
+		if (!window.confirm(i18n('removeAssignmentConfirm', 'Remove this assignment row?'))) {
 			return;
 		}
 		$(this).closest('.pab-assignment-row').remove();
@@ -616,7 +817,53 @@
 			addAssignmentRow();
 		}
 		reindexAssignmentRows();
+		markFormDirty();
 	});
+
+	/* ---- Group assignment table (product tab) ---- */
+
+	function reindexGroupAssignmentRows() {
+		var idx = 0;
+		$('.pab-assignments-table tbody tr').each(function () {
+			$(this).find('input, select').each(function () {
+				var name = $(this).attr('name');
+				if (!name) {
+					return;
+				}
+				$(this).attr('name', name.replace(/pab_product_group_assignments\[\d+]/g, 'pab_product_group_assignments[' + idx + ']'));
+			});
+			idx++;
+		});
+	}
+
+	$(document).on('click', '.pab-assignments-table .pab-remove-assignment-row', function (e) {
+		e.preventDefault();
+		$(this).closest('tr').remove();
+		reindexGroupAssignmentRows();
+		markFormDirty();
+	});
+
+	$(document).on('click', '#pab-add-group-assignment', function (e) {
+		e.preventDefault();
+		var $tbody = $('.pab-assignments-table tbody');
+		var idx = $tbody.find('tr').length;
+		var $select = $tbody.find('tr:first select').clone();
+		// Reset the select to default value
+		$select.find('option').prop('selected', false);
+		$select.val('0');
+		var $row = $('<tr>' +
+			'<td></td>' +
+			'<td><input type="number" class="small-text" name="pab_product_group_assignments[' + idx + '][priority]" value="100" /></td>' +
+			'<td><input type="checkbox" name="pab_product_group_assignments[' + idx + '][status]" value="1" checked /></td>' +
+			'<td><a href="#" class="pab-remove-assignment-row" aria-label="' + i18n('removeAssignment', 'Remove') + '">' + i18n('removeText', 'Remove') + '</a></td>' +
+			'</tr>');
+		$row.find('td:first').append($select);
+		$tbody.append($row);
+		reindexGroupAssignmentRows();
+		markFormDirty();
+	});
+
+	/* ---- Location rules (Addon Group CPT) ---- */
 
 	function pabEscapeHtml(str) {
 		return String(str)
@@ -657,8 +904,6 @@
 	}
 
 	function pabSyncTermSelectData($val, tax) {
-		// WooCommerce reads $(el).data('taxonomy') in the AJAX callback; jQuery caches
-		// data-* and does not refresh when only .attr('data-taxonomy') changes — clear cache.
 		$val.removeData('taxonomy');
 		$val.removeData('minimum_input_length');
 		$val.attr('data-taxonomy', tax);
@@ -681,13 +926,42 @@
 		$(document.body).trigger('wc-enhanced-select-init');
 	}
 
-	function buildLocationRuleRowHtml(index) {
+	/**
+	 * Build a new location rule row from the PHP-rendered template.
+	 * Phase 4: Replaced string concatenation with cloneTemplate().
+	 */
+	function addLocationRuleRow() {
+		var idx = $('#pab-group-location-rules-rows .pab-location-rule-row').length;
+		var $row = cloneTemplate('pab-tmpl-location-rule-row', {
+			'__PAB_LOCATION_RULE_INDEX__': idx
+		});
+		if (!$row.length) {
+			// Fallback: if template doesn't exist (shouldn't happen), use legacy method
+			$row = $(buildLocationRuleRowHtmlFallback(idx));
+		}
+		$('#pab-group-location-rules-rows').append($row);
+		var tax = $row.find('.pab-location-rule-param').val() || '';
+		pabSyncTermSelectData($row.find('.pab-location-rule-value'), tax);
+		$row.find('.pab-location-rule-param').off('change.pabLoc').on('change.pabLoc', function () {
+			refreshLocationTermSelect($row);
+		});
+		reindexLocationRuleRows();
+		window.setTimeout(function () {
+			$(document.body).trigger('wc-enhanced-select-init');
+		}, 0);
+		markFormDirty();
+	}
+
+	/**
+	 * Legacy fallback — only used if the PHP template is missing.
+	 */
+	function buildLocationRuleRowHtmlFallback(index) {
 		var taxes = pabAdmin.groupLocationTaxonomies || {};
 		var defaultTax = pabAdmin.defaultLocationTaxonomy || 'product_cat';
-		var i18n = pabAdmin.i18n || {};
-		var opEq = i18n.opEqual || 'is equal to';
-		var opNe = i18n.opNotEqual || 'is not equal to';
-		var ph = i18n.searchTerms || 'Search for a term…';
+		var i18nLocal = pabAdmin.i18n || {};
+		var opEq = i18nLocal.opEqual || 'is equal to';
+		var opNe = i18nLocal.opNotEqual || 'is not equal to';
+		var ph = i18nLocal.searchTerms || 'Search for a term…';
 		var opts = '';
 		$.each(taxes, function (k, v) {
 			opts +=
@@ -725,27 +999,12 @@
 				pabEscapeHtml(ph) +
 				'" data-taxonomy="' +
 				pabEscapeHtml(defaultTax) +
-				'" data-minimum_input_length="2" data-return_id="true" style="width:100%;min-width:200px;"></select></div>' +
+				'" data-minimum_input_length="2" data-return_id="true"></select></div>' +
 				'<div class="pab-location-rule-col pab-location-rule-col-actions">' +
 				'<button type="button" class="button-link pab-remove-location-rule" aria-label="' +
-				pabEscapeHtml(i18n.removeLocationRule || 'Remove rule') +
+				pabEscapeHtml(i18nLocal.removeLocationRule || 'Remove rule') +
 				'">&times;</button></div></div>'
 		);
-	}
-
-	function addLocationRuleRow() {
-		var idx = $('#pab-group-location-rules-rows .pab-location-rule-row').length;
-		var $row = $(buildLocationRuleRowHtml(idx));
-		$('#pab-group-location-rules-rows').append($row);
-		var tax = $row.find('.pab-location-rule-param').val() || '';
-		pabSyncTermSelectData($row.find('.pab-location-rule-value'), tax);
-		$row.find('.pab-location-rule-param').off('change.pabLoc').on('change.pabLoc', function () {
-			refreshLocationTermSelect($row);
-		});
-		reindexLocationRuleRows();
-		window.setTimeout(function () {
-			$(document.body).trigger('wc-enhanced-select-init');
-		}, 0);
 	}
 
 	function initPabLocationRules() {
@@ -781,12 +1040,36 @@
 				destroyPabTermSelect($row.find('.pab-location-rule-value'));
 				$row.remove();
 				reindexLocationRuleRows();
+				markFormDirty();
 			});
 		// Run after current stack so WooCommerce's wc-enhanced-select-init handler is ready.
 		window.setTimeout(function () {
 			$(document.body).trigger('wc-enhanced-select-init');
 		}, 0);
 	}
+
+	/* ---- Character counter for settings page ---- */
+
+	function initCharCounter() {
+		var $input = $('#pab-upload-image-drop-title');
+		if (!$input.length) {
+			return;
+		}
+		var maxLen = parseInt($input.attr('maxlength'), 10) || 240;
+		var $counter = $('<span class="pab-char-count"></span>');
+		$input.after($counter);
+
+		function updateCounter() {
+			var remaining = maxLen - $input.val().length;
+			$counter.text($input.val().length + '/' + maxLen);
+			$counter.toggleClass('is-warning', remaining < 20);
+		}
+
+		$input.on('input', updateCounter);
+		updateCounter();
+	}
+
+	/* ---- Document ready ---- */
 
 	$(function () {
 		if ($('#pab-group-location-rules').length) {
@@ -801,6 +1084,8 @@
 				});
 				reindexAssignmentRows();
 			}
+			// Settings page
+			initCharCounter();
 			return;
 		}
 
@@ -819,13 +1104,22 @@
 		});
 		initSortable();
 		updateRuleFieldDropdowns();
+		updateEmptyStates();
 
+		// Validate on submit
 		$('#post').on('submit', function () {
 			reindexAddonRows();
 			reindexChildRows();
 			reindexRuleRows();
 			reindexLocationRuleRows();
+			validateRequiredFields();
 		});
+
+		// Unsaved changes warning
+		initUnsavedChangesWarning();
+
+		// Character counter on settings page (also runs here since settings can be within product editor)
+		initCharCounter();
 
 		if ($('#pab-assignments-table').length) {
 			$('#pab-assignments-rows .pab-assignment-row').each(function () {
