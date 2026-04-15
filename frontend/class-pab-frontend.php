@@ -148,7 +148,11 @@ class PAB_Frontend {
 			return;
 		}
 
-		echo '<div class="pab-product-addons" id="pab-product-addons">';
+		$pab_settings   = get_option( 'pab_settings', [] );
+		$swatch_shape   = PAB_Data::sanitize_image_swatch_shape( $pab_settings['image_swatch_shape'] ?? 'square' );
+		$shape_class    = 'pab-swatch-shape--' . $swatch_shape;
+
+		echo '<div class="pab-product-addons ' . esc_attr( $shape_class ) . '" id="pab-product-addons">';
 
 		if ( ! empty( $addon_fields ) ) {
 			$display = new PAB_Display_Fields( $product_id, $addon_fields );

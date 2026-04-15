@@ -636,6 +636,25 @@
     max-width: var(--pab-addon-swatch-label-max, 54px);
 }
 
+/* Image swatch thumbnail shape (PAB → Settings → Image swatch shape) */
+.pab-product-addons.pab-swatch-shape--square .pab-field-wrap.pab-field-type-image_swatch .pab-swatch-img,
+.pab-product-addons.pab-swatch-shape--square .pab-field-wrap.pab-field-type-image_swatch .pab-swatch-custom-cell {
+    border-radius: 0;
+}
+
+.pab-product-addons.pab-swatch-shape--circle .pab-field-wrap.pab-field-type-image_swatch .pab-swatch-img,
+.pab-product-addons.pab-swatch-shape--circle .pab-field-wrap.pab-field-type-image_swatch .pab-swatch-custom-cell {
+    border-radius: 50%;
+}
+
+.pab-product-addons.pab-swatch-shape--circle .pab-child--swatch-exclusive .pab-child-media--swatch {
+    border-radius: 50%;
+}
+
+.pab-product-addons.pab-swatch-shape--square .pab-child--swatch-exclusive .pab-child-media--swatch {
+    border-radius: max(6px, 0.35em);
+}
+
 /* -----------------------------------------------------------------------
    Text swatches
 ----------------------------------------------------------------------- */

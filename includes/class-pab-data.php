@@ -20,6 +20,17 @@ class PAB_Data {
 	}
 
 	/**
+	 * Global storefront shape for image swatch thumbnails (admin: PAB → Settings).
+	 *
+	 * @param mixed $value Raw setting.
+	 * @return string circle|square
+	 */
+	public static function sanitize_image_swatch_shape( $value ): string {
+		$v = sanitize_key( (string) $value );
+		return 'circle' === $v ? 'circle' : 'square';
+	}
+
+	/**
 	 * @return array<int,array<string,mixed>>
 	 */
 	public static function decode_json_meta( int $product_id, string $meta_key ): array {

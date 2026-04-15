@@ -162,6 +162,7 @@ class PAB_Admin {
 					'enable_live_total'       => 'yes',
 					'enable_tooltips'         => 'yes',
 					'upload_image_drop_title' => '',
+					'image_swatch_shape'      => 'square',
 				],
 			]
 		);
@@ -177,6 +178,7 @@ class PAB_Admin {
 			'enable_live_total'       => ! empty( $settings['enable_live_total'] ) ? 'yes' : 'no',
 			'enable_tooltips'         => ! empty( $settings['enable_tooltips'] ) ? 'yes' : 'no',
 			'upload_image_drop_title' => $title,
+			'image_swatch_shape'      => PAB_Data::sanitize_image_swatch_shape( $settings['image_swatch_shape'] ?? 'square' ),
 		];
 	}
 
@@ -211,6 +213,17 @@ class PAB_Admin {
 							<td>
 								<input type="text" class="regular-text" id="pab-upload-image-drop-title" name="pab_settings[upload_image_drop_title]" value="<?php echo esc_attr( $settings['upload_image_drop_title'] ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Drop an image here', 'pab' ); ?>" maxlength="240" />
 								<p class="description"><?php esc_html_e( 'Main line of text inside the image upload area on the product page. Leave empty to use the default.', 'pab' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="pab-image-swatch-shape"><?php esc_html_e( 'Image swatch shape', 'pab' ); ?></label></th>
+							<td>
+								<?php $swatch_shape = PAB_Data::sanitize_image_swatch_shape( $settings['image_swatch_shape'] ?? 'square' ); ?>
+								<select id="pab-image-swatch-shape" name="pab_settings[image_swatch_shape]">
+									<option value="square" <?php selected( $swatch_shape, 'square' ); ?>><?php esc_html_e( 'Square', 'pab' ); ?></option>
+									<option value="circle" <?php selected( $swatch_shape, 'circle' ); ?>><?php esc_html_e( 'Circle', 'pab' ); ?></option>
+								</select>
+								<p class="description"><?php esc_html_e( 'Shape of image swatches for add-on fields and composite “image swatch” child layout on the product page.', 'pab' ); ?></p>
 							</td>
 						</tr>
 					</table>
