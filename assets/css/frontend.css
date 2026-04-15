@@ -642,9 +642,40 @@
     border-radius: 0;
 }
 
+/*
+ * Circle mode: the outer .pab-swatch-item is a square box with border — that hides circular thumbs.
+ * Drop the outer frame and draw the ring on the circular image / custom cell instead.
+ */
+.pab-field-wrap.pab-field-type-image_swatch.pab-swatch-shape--circle .pab-swatch-item {
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+    overflow: visible;
+    background: transparent;
+}
+
 .pab-field-wrap.pab-field-type-image_swatch.pab-swatch-shape--circle .pab-swatch-img,
 .pab-field-wrap.pab-field-type-image_swatch.pab-swatch-shape--circle .pab-swatch-custom-cell {
     border-radius: 50%;
+    border: 2px solid #ddd;
+    box-sizing: border-box;
+    overflow: hidden;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pab-field-wrap.pab-field-type-image_swatch.pab-swatch-shape--circle .pab-swatch-item--custom .pab-swatch-custom-cell {
+    border-style: dashed;
+}
+
+.pab-field-wrap.pab-field-type-image_swatch.pab-swatch-shape--circle .pab-swatch-item:hover .pab-swatch-img,
+.pab-field-wrap.pab-field-type-image_swatch.pab-swatch-shape--circle .pab-swatch-item:hover .pab-swatch-custom-cell {
+    border-color: #999;
+}
+
+.pab-field-wrap.pab-field-type-image_swatch.pab-swatch-shape--circle .pab-swatch-item.pab-swatch-active .pab-swatch-img,
+.pab-field-wrap.pab-field-type-image_swatch.pab-swatch-shape--circle .pab-swatch-item.pab-swatch-active .pab-swatch-custom-cell {
+    border-color: #333;
+    box-shadow: 0 0 0 1px #333;
 }
 
 /* -----------------------------------------------------------------------

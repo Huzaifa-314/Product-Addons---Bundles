@@ -3,7 +3,7 @@
  * Plugin Name: Product Addons & Bundles
  * Plugin URI:  #
  * Description: Add product add-on fields, composite/child products, and conditional pricing to WooCommerce products.
- * Version:     1.0.33
+ * Version:     1.0.34
  * Author:      Custom
  * Text Domain: pab
  * Domain Path: /languages
