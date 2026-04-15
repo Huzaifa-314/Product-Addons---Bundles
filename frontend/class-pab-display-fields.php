@@ -50,6 +50,64 @@ class PAB_Display_Fields {
 	}
 
 	/**
+	 * Sum of each nested field’s maximum flat surcharge (for “individual price per sub-field” popup label hint).
+	 *
+	 * @param array<int,array<string,mixed>> $nested
+	 */
+	private function popup_nested_per_field_max_flat_sum( array $nested ): float {
+		$sum = 0.0;
+		foreach ( $nested as $child ) {
+			if ( ! is_array( $child ) ) {
+				continue;
+			}
+			$type = $child['type'] ?? 'text';
+			$pt   = $child['price_type'] ?? 'flat';
+			if ( 'flat' !== $pt ) {
+				continue;
+			}
+			if ( in_array( $type, self::choice_types(), true ) ) {
+				$mode = $child['choice_price_mode'] ?? 'per_option';
+				if ( 'uniform' === $mode ) {
+					$sum += (float) ( $child['price'] ?? 0 );
+					continue;
+				}
+				$max_opt = 0.0;
+				foreach ( $child['options'] ?? [] as $opt ) {
+					$max_opt = max( $max_opt, (float) ( $opt['price'] ?? 0 ) );
+				}
+				if ( 'image_swatch' === $type && ! empty( $child['swatch_allow_custom_upload'] ) ) {
+					$max_opt = max( $max_opt, (float) ( $child['swatch_custom_price'] ?? 0 ) );
+				}
+				$sum += $max_opt;
+				continue;
+			}
+			if ( 'checkbox' === $type ) {
+				$sum += (float) ( $child['price'] ?? 0 );
+				continue;
+			}
+			$sum += (float) ( $child['price'] ?? 0 );
+		}
+		return $sum;
+	}
+
+	/**
+	 * Price suffix after the popup field label (matches other field labels).
+	 *
+	 * @param array<string,mixed> $field Popup field config.
+	 */
+	private function popup_parent_label_price_html( array $field, string $n_mode, float $pop_price, string $pop_pt ): string {
+		if ( 'uniform' === $n_mode ) {
+			return $this->uniform_price_hint_html( $pop_price, $pop_pt );
+		}
+		$nested = isset( $field['nested_fields'] ) && is_array( $field['nested_fields'] ) ? $field['nested_fields'] : [];
+		$max    = $this->popup_nested_per_field_max_flat_sum( $nested );
+		if ( $max <= 0 ) {
+			return '';
+		}
+		return ' <span class="pab-opt-price">(+' . wp_kses_post( wc_price( $max ) ) . ')</span>';
+	}
+
+	/**
 	 * Primary line for image upload dropzone (WooCommerce → Product Addons & Bundles → General).
 	 */
 	private function get_upload_image_drop_title(): string {
@@ -198,7 +256,10 @@ class PAB_Display_Fields {
 		if ( $required ) {
 			echo '<span class="required pab-required-star" aria-hidden="true">*</span>';
 		}
-		echo '</span></label>';
+		echo '</span>';
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- uniform_price_hint_html / wc_price markup matches other fields.
+		echo $this->popup_parent_label_price_html( $field, $n_mode, $pop_price, $pop_pt );
+		echo '</label>';
 		echo '<div class="pab-popup-trigger">';
 		echo '<button type="button" id="' . esc_attr( $btn_id ) . '" class="button pab-popup-open" aria-haspopup="dialog" aria-controls="' . esc_attr( $dialog_id ) . '">' . esc_html( $btn ) . '</button>';
 		echo '</div>';
