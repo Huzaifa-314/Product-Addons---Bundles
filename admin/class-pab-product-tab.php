@@ -153,7 +153,7 @@ class PAB_Product_Tab {
 		<?php
 	}
 
-	private function render_addon_row( $index, $field, $is_template = false, $nested_parent_index = null ) {
+	private function render_addon_row( $index, $field, $is_template = false, $nested_parent_index = null, $parent_popup_nested_price_mode = null ) {
 		$field_id        = isset( $field['id'] ) ? sanitize_key( (string) $field['id'] ) : '';
 		if ( '' === $field_id ) {
 			$field_id = '__PAB_FIELD_ID__';
@@ -218,6 +218,9 @@ class PAB_Product_Tab {
 		$row_classes      = 'pab-settings-card pab-addon-row' . ( null !== $nested_parent_index ? ' pab-addon-row--nested' : '' );
 		$standard_sections_hidden = $is_popup && null === $nested_parent_index;
 		$disable_popup_main_pricing = ( $is_popup && null === $nested_parent_index );
+		$suppress_nested_subfield_pricing = ( null !== $nested_parent_index && 'uniform' === PAB_Data::sanitize_nested_price_mode( $parent_popup_nested_price_mode ?? 'per_field' ) );
+		$options_choice_mode_for_ui       = $suppress_nested_subfield_pricing ? 'uniform' : $choice_mode;
+		$row_classes                      = $row_classes . ( $suppress_nested_subfield_pricing ? ' pab-nested-subfield-pricing-suppressed' : '' );
 		?>
 		<div class="<?php echo esc_attr( $row_classes ); ?>" data-index="<?php echo esc_attr( $index ); ?>" data-field-id="<?php echo esc_attr( $field_id ); ?>" data-pab-name-root="<?php echo esc_attr( $field_name_root ); ?>">
 			<div class="pab-settings-card__header pab-addon-row__header">
@@ -383,7 +386,7 @@ class PAB_Product_Tab {
 						<div class="pab-popup-nested-list pab-repeater-list">
 							<?php if ( $is_popup ) : ?>
 								<?php foreach ( $nested_fields as $ni => $nf ) : ?>
-									<?php $this->render_addon_row( $ni, $nf, false, $index ); ?>
+									<?php $this->render_addon_row( $ni, $nf, false, $index, $nested_price_mode ); ?>
 								<?php endforeach; ?>
 							<?php endif; ?>
 						</div>
@@ -391,14 +394,14 @@ class PAB_Product_Tab {
 				</div>
 				<?php endif; ?>
 
-				<div class="pab-choice-pricing-section <?php echo $standard_sections_hidden ? 'pab-is-hidden' : ''; ?> <?php echo $has_options ? '' : 'pab-is-hidden'; ?>">
+				<div class="pab-choice-pricing-section <?php echo $standard_sections_hidden ? 'pab-is-hidden' : ''; ?> <?php echo $has_options ? '' : 'pab-is-hidden'; ?> <?php echo $suppress_nested_subfield_pricing ? 'pab-is-hidden' : ''; ?>">
 					<h4 class="pab-field-settings-heading"><?php esc_html_e( 'Choice pricing', 'pab' ); ?></h4>
 					<table class="pab-field-settings-table widefat" role="presentation">
 						<tbody>
 							<tr class="pab-field-settings-table__row">
 								<th scope="row" class="pab-field-settings-table__label"><?php esc_html_e( 'Mode', 'pab' ); ?></th>
 								<td class="pab-field-settings-table__control">
-									<select name="<?php echo esc_attr( $field_name_root ); ?>[choice_price_mode]" class="pab-choice-price-mode"<?php disabled( $is_template, true ); ?>>
+									<select name="<?php echo esc_attr( $field_name_root ); ?>[choice_price_mode]" class="pab-choice-price-mode"<?php disabled( $is_template || $suppress_nested_subfield_pricing, true ); ?>>
 										<option value="uniform" <?php selected( $choice_mode, 'uniform' ); ?>><?php esc_html_e( 'Same price for all choices', 'pab' ); ?></option>
 										<option value="per_option" <?php selected( $choice_mode, 'per_option' ); ?>><?php esc_html_e( 'Individual price per choice', 'pab' ); ?></option>
 									</select>
@@ -409,14 +412,14 @@ class PAB_Product_Tab {
 					</table>
 				</div>
 
-				<div class="pab-field-level-pricing <?php echo $standard_sections_hidden ? 'pab-is-hidden' : ''; ?> <?php echo ( $has_options && $choice_mode === 'per_option' ) ? 'pab-is-hidden' : ''; ?>">
+				<div class="pab-field-level-pricing <?php echo $standard_sections_hidden ? 'pab-is-hidden' : ''; ?> <?php echo ( $has_options && $choice_mode === 'per_option' ) ? 'pab-is-hidden' : ''; ?> <?php echo $suppress_nested_subfield_pricing ? 'pab-is-hidden' : ''; ?>">
 					<h4 class="pab-field-settings-heading"><?php esc_html_e( 'Pricing', 'pab' ); ?></h4>
 					<table class="pab-field-settings-table widefat" role="presentation">
 						<tbody>
 							<tr class="pab-field-settings-table__row">
 								<th scope="row" class="pab-field-settings-table__label"><?php esc_html_e( 'Price type', 'pab' ); ?></th>
 								<td class="pab-field-settings-table__control">
-									<select name="<?php echo esc_attr( $field_name_root ); ?>[price_type]"<?php disabled( $is_template || $disable_popup_main_pricing, true ); ?>>
+									<select name="<?php echo esc_attr( $field_name_root ); ?>[price_type]"<?php disabled( $is_template || $disable_popup_main_pricing || $suppress_nested_subfield_pricing, true ); ?>>
 										<?php foreach ( $price_types as $val => $lbl ) : ?>
 											<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $price_type, $val ); ?>><?php echo esc_html( $lbl ); ?></option>
 										<?php endforeach; ?>
@@ -428,7 +431,7 @@ class PAB_Product_Tab {
 								<td class="pab-field-settings-table__control">
 									<input type="number" step="0.01" min="0" class="short wc_input_price"
 										name="<?php echo esc_attr( $field_name_root ); ?>[price]"
-										value="<?php echo esc_attr( $price ); ?>"<?php disabled( $is_template || $disable_popup_main_pricing, true ); ?> />
+										value="<?php echo esc_attr( $price ); ?>"<?php disabled( $is_template || $disable_popup_main_pricing || $suppress_nested_subfield_pricing, true ); ?> />
 								</td>
 							</tr>
 						</tbody>
@@ -485,11 +488,11 @@ class PAB_Product_Tab {
 									<p class="description"><?php esc_html_e( 'Shown as an extra swatch tile next to your preset images.', 'pab' ); ?></p>
 								</td>
 							</tr>
-							<tr class="pab-field-settings-table__row pab-swatch-custom-price-row <?php echo ( 'per_option' === $choice_mode && $swatch_allow_custom ) ? '' : 'pab-is-hidden'; ?>">
+							<tr class="pab-field-settings-table__row pab-swatch-custom-price-row <?php echo ( 'per_option' === $choice_mode && $swatch_allow_custom && ! $suppress_nested_subfield_pricing ) ? '' : 'pab-is-hidden'; ?>">
 								<th scope="row" class="pab-field-settings-table__label"><?php esc_html_e( 'Price for upload choice', 'pab' ); ?></th>
 								<td class="pab-field-settings-table__control">
 									<input type="number" step="0.01" min="0" class="short wc_input_price" name="<?php echo esc_attr( $field_name_root ); ?>[swatch_custom_price]"
-										value="<?php echo esc_attr( $swatch_custom_price ); ?>"<?php disabled( $is_template, true ); ?> />
+										value="<?php echo esc_attr( $swatch_custom_price ); ?>"<?php disabled( $is_template || $suppress_nested_subfield_pricing, true ); ?> />
 									<p class="description"><?php esc_html_e( 'Used when “Individual price per choice” is selected. Otherwise the field price above applies to all choices.', 'pab' ); ?></p>
 								</td>
 							</tr>
@@ -500,13 +503,13 @@ class PAB_Product_Tab {
 				<div class="pab-options-section <?php echo $standard_sections_hidden ? 'pab-is-hidden' : ''; ?> <?php echo $has_options ? '' : 'pab-is-hidden'; ?>">
 					<div class="pab-options-panel">
 						<h4 class="pab-field-settings-heading"><?php esc_html_e( 'Choices', 'pab' ); ?></h4>
-						<p class="description pab-option-prices-desc <?php echo ( $choice_mode === 'uniform' ) ? 'pab-is-hidden' : ''; ?>"><?php esc_html_e( 'Optional flat price for each choice (only used when “Individual price per choice” is selected).', 'pab' ); ?></p>
+						<p class="description pab-option-prices-desc <?php echo ( $options_choice_mode_for_ui === 'uniform' ) ? 'pab-is-hidden' : ''; ?>"><?php esc_html_e( 'Optional flat price for each choice (only used when “Individual price per choice” is selected).', 'pab' ); ?></p>
 						<div class="pab-options-list">
 							<?php if ( $has_options ) : ?>
-								<?php $this->render_options_table_header( $type, $choice_mode ); ?>
+								<?php $this->render_options_table_header( $type, $options_choice_mode_for_ui ); ?>
 							<?php endif; ?>
 							<?php foreach ( $options as $opt_i => $opt ) : ?>
-								<?php $this->render_option_row( $field_name_root, $opt_i, $opt, $type, $is_template, $choice_mode ); ?>
+								<?php $this->render_option_row( $field_name_root, $opt_i, $opt, $type, $is_template, $options_choice_mode_for_ui ); ?>
 							<?php endforeach; ?>
 						</div>
 						<p class="form-field pab-options-actions">
@@ -545,7 +548,7 @@ class PAB_Product_Tab {
 				<label class="screen-reader-text" for="pab-opt-prc-<?php echo esc_attr( $opt_id_suffix ); ?>"><?php esc_html_e( 'Price', 'pab' ); ?></label>
 				<input type="number" id="pab-opt-prc-<?php echo esc_attr( $opt_id_suffix ); ?>" step="0.01" min="0" class="small-text pab-option-price-input wc_input_price" placeholder="<?php echo esc_attr( $placeholder_amt ); ?>"
 					name="<?php echo esc_attr( $field_name_root ); ?>[options][<?php echo esc_attr( $opt_index ); ?>][price]"
-					value="<?php echo esc_attr( $opt_price ); ?>"<?php disabled( $is_template, true ); ?> />
+					value="<?php echo esc_attr( $opt_price ); ?>"<?php disabled( $is_template || $hide_opt_price, true ); ?> />
 			</div>
 			<div class="pab-option-col pab-option-col-image <?php echo $is_swatch ? '' : 'pab-is-hidden'; ?>">
 				<input type="hidden" class="pab-option-image-url"

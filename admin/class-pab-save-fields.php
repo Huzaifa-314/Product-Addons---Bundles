@@ -51,7 +51,7 @@ class PAB_Save_Fields {
 	 * @param array<string,mixed> $field
 	 * @return array<string,mixed>
 	 */
-	private function sanitize_one_addon_field( array $field, bool $allow_popup_type ) {
+	private function sanitize_one_addon_field( array $field, bool $allow_popup_type, bool $force_zero_nested_prices = false ) {
 		$base_allowed_types     = [ 'text', 'textarea', 'select', 'checkbox', 'radio', 'number', 'file', 'image_upload', 'image_swatch', 'text_swatch' ];
 		$allowed_types          = $allow_popup_type ? array_merge( $base_allowed_types, [ 'popup' ] ) : $base_allowed_types;
 		$allowed_price_types    = [ 'flat', 'percentage', 'per_qty' ];
@@ -66,22 +66,23 @@ class PAB_Save_Fields {
 			if ( $btn === '' ) {
 				$btn = __( 'Customize', 'pab' );
 			}
-			$nested_clean = [];
+			$nested_price_mode   = PAB_Data::sanitize_nested_price_mode( $field['nested_price_mode'] ?? 'per_field' );
+			$strip_child_prices  = ( 'uniform' === $nested_price_mode );
+			$nested_clean        = [];
 			if ( ! empty( $field['nested_fields'] ) && is_array( $field['nested_fields'] ) ) {
 				foreach ( $field['nested_fields'] as $child ) {
 					if ( ! is_array( $child ) ) {
 						continue;
 					}
-					$nested_clean[] = $this->sanitize_one_addon_field( $child, false );
+					$nested_clean[] = $this->sanitize_one_addon_field( $child, false, $strip_child_prices );
 				}
 			}
 
 			$popup_side_image = esc_url_raw( trim( (string) ( $field['popup_side_image'] ?? '' ) ) );
 
-			$nested_price_mode = PAB_Data::sanitize_nested_price_mode( $field['nested_price_mode'] ?? 'per_field' );
-			$popup_price_type  = sanitize_text_field( $field['price_type'] ?? 'flat' );
-			$popup_price_type  = in_array( $popup_price_type, $allowed_price_types, true ) ? $popup_price_type : 'flat';
-			$popup_price       = (float) ( $field['price'] ?? 0 );
+			$popup_price_type = sanitize_text_field( $field['price_type'] ?? 'flat' );
+			$popup_price_type = in_array( $popup_price_type, $allowed_price_types, true ) ? $popup_price_type : 'flat';
+			$popup_price      = (float) ( $field['price'] ?? 0 );
 			if ( 'per_field' === $nested_price_mode ) {
 				$popup_price      = 0.0;
 				$popup_price_type = 'flat';
@@ -154,6 +155,17 @@ class PAB_Save_Fields {
 					$opt_item['image'] = esc_url_raw( $opt['image'] );
 				}
 				$item['options'][] = $opt_item;
+			}
+		}
+
+		if ( $force_zero_nested_prices ) {
+			$item['price']      = 0.0;
+			$item['price_type'] = 'flat';
+			foreach ( $item['options'] as $oi => $opt_row ) {
+				$item['options'][ $oi ]['price'] = 0.0;
+			}
+			if ( isset( $item['swatch_custom_price'] ) ) {
+				$item['swatch_custom_price'] = 0.0;
 			}
 		}
 

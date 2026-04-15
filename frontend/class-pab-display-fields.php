@@ -265,9 +265,10 @@ class PAB_Display_Fields {
 		$uniform_price = $is_choice && 'uniform' === $choice_mode_effective;
 		$per_option    = $is_choice && 'per_option' === $choice_mode_effective;
 
-		$data_price_attr  = ( $is_nested && $popup_parent_uniform ) ? $popup_parent_price : $price;
-		$data_pt_attr     = ( $is_nested && $popup_parent_uniform ) ? $popup_parent_price_type : $price_type;
-		$data_cmode_attr  = $is_choice ? $choice_mode_effective : '';
+		// Popup “same price for all sub-fields”: no per–sub-field price hints; live total uses parent config only.
+		$data_price_attr = ( $is_nested && $popup_parent_uniform ) ? '0' : (string) $price;
+		$data_pt_attr    = ( $is_nested && $popup_parent_uniform ) ? 'flat' : $price_type;
+		$data_cmode_attr = ( $is_nested && $popup_parent_uniform ) ? '' : ( $is_choice ? $choice_mode_effective : '' );
 
 		$swatch_allow_custom = ( 'image_swatch' === $type && ! empty( $field['swatch_allow_custom_upload'] ) );
 
@@ -300,6 +301,8 @@ class PAB_Display_Fields {
 		echo '</span>';
 		if ( 'image_swatch' === $type ) {
 			echo '<span class="pab-opt-price pab-image-swatch-label-price" hidden></span>';
+		} elseif ( $is_nested && $popup_parent_uniform ) {
+			// Sub-field prices are not shown; only the popup’s shared price applies.
 		} elseif ( $uniform_price ) {
 			echo wp_kses_post( $this->uniform_price_hint_html( $effective_price, $effective_price_type ) );
 		} elseif ( $per_option && $is_choice ) {

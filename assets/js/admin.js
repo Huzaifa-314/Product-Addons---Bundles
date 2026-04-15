@@ -118,6 +118,7 @@
 				});
 			});
 		});
+		syncNestedSubfieldPricingSuppression($topRow);
 	}
 
 	function reindexAddonRows() {
@@ -228,6 +229,30 @@
 		syncSwatchFieldSettings($row);
 	}
 
+	function syncNestedSubfieldPricingSuppression($topRow) {
+		if (!$topRow || !$topRow.length) {
+			return;
+		}
+		var $mode = $topRow.find('.pab-popup-nested-price-mode').first();
+		if (!$mode.length) {
+			return;
+		}
+		var sup = String($mode.val() || 'per_field') === 'uniform';
+		var $nested = $topRow.find('.pab-popup-nested-list > .pab-addon-row--nested');
+		$nested.toggleClass('pab-nested-subfield-pricing-suppressed', sup);
+		$nested.find('.pab-choice-price-mode').prop('disabled', sup);
+		$nested.find('.pab-field-level-pricing select, .pab-field-level-pricing input.wc_input_price').prop('disabled', sup);
+		$nested.find('.pab-option-price-input').prop('disabled', sup);
+		$nested.find('input[name*="[swatch_custom_price]"]').prop('disabled', sup);
+		if (!sup) {
+			$nested.each(function () {
+				var $r = $(this);
+				toggleChoicePricingMode($r);
+				syncSwatchFieldSettings($r);
+			});
+		}
+	}
+
 	function syncPopupNestedPriceUi($topRow) {
 		if (!$topRow || !$topRow.length) {
 			return;
@@ -239,6 +264,7 @@
 		var uniform = String($mode.val() || 'per_field') === 'uniform';
 		$topRow.find('.pab-popup-uniform-subfield-pricing').toggleClass('pab-is-hidden', !uniform);
 		$topRow.find('.pab-popup-uniform-price-type, .pab-popup-uniform-price-input').prop('disabled', !uniform);
+		syncNestedSubfieldPricingSuppression($topRow);
 	}
 
 	function toggleOptionsSection($row, type) {
