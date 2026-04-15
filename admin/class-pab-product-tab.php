@@ -332,9 +332,9 @@ class PAB_Product_Tab {
 								<td class="pab-field-settings-table__control">
 									<select name="<?php echo esc_attr( $field_name_root ); ?>[nested_price_mode]" class="pab-popup-nested-price-mode"<?php disabled( $is_template, true ); ?>>
 										<option value="per_field" <?php selected( $nested_price_mode, 'per_field' ); ?>><?php esc_html_e( 'Individual price per sub-field', 'pab' ); ?></option>
-										<option value="uniform" <?php selected( $nested_price_mode, 'uniform' ); ?>><?php esc_html_e( 'Same price for all sub-fields', 'pab' ); ?></option>
+										<option value="uniform" <?php selected( $nested_price_mode, 'uniform' ); ?>><?php esc_html_e( 'Single price for all sub-fields', 'pab' ); ?></option>
 									</select>
-									<p class="description"><?php esc_html_e( 'Use each sub-field’s own pricing, or one shared price and price type for every sub-field that the customer fills in.', 'pab' ); ?></p>
+									<p class="description"><?php esc_html_e( 'Use each sub-field’s own pricing, or one shared price and price type charged once when the customer uses any sub-field in this popup.', 'pab' ); ?></p>
 								</td>
 							</tr>
 						</tbody>
@@ -359,7 +359,7 @@ class PAB_Product_Tab {
 										<input type="number" step="0.01" min="0" class="short wc_input_price pab-popup-uniform-price-input"
 											name="<?php echo esc_attr( $field_name_root ); ?>[price]"
 											value="<?php echo esc_attr( $price ); ?>"<?php disabled( $is_template || 'uniform' !== $nested_price_mode, true ); ?> />
-										<p class="description"><?php esc_html_e( 'Applied once per sub-field that has a value (e.g. each filled line adds this amount).', 'pab' ); ?></p>
+										<p class="description"><?php esc_html_e( 'Charged once per product when at least one sub-field in this popup has a value (not once per sub-field).', 'pab' ); ?></p>
 									</td>
 								</tr>
 							</tbody>

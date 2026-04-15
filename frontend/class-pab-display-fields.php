@@ -359,7 +359,7 @@ class PAB_Display_Fields {
 		$uniform_price = $is_choice && 'uniform' === $choice_mode_effective;
 		$per_option    = $is_choice && 'per_option' === $choice_mode_effective;
 
-		// Popup uniform: sub-fields charge the parent’s price/type in the cart; expose that on the wrap for JS (e.g. image swatch label).
+		// Popup uniform: one shared price/type for the whole popup when any sub-field is used; data attrs still use parent price for JS edge cases.
 		$data_price_attr = ( $is_nested && $popup_parent_uniform ) ? (string) $popup_parent_price : (string) $price;
 		$data_pt_attr    = ( $is_nested && $popup_parent_uniform ) ? $popup_parent_price_type : $price_type;
 		$data_cmode_attr = ( $is_nested && $popup_parent_uniform && $is_choice ) ? 'uniform' : ( $is_choice ? $choice_mode_effective : '' );
@@ -395,21 +395,23 @@ class PAB_Display_Fields {
 		echo '</span>';
 		if ( 'image_swatch' === $type ) {
 			$swatch_custom_flat = $swatch_allow_custom ? (float) ( $field['swatch_custom_price'] ?? 0 ) : 0.0;
-			if ( $uniform_price ) {
+			if ( $is_nested && $popup_parent_uniform ) {
+				echo '<span class="pab-opt-price pab-image-swatch-label-price" hidden="hidden" aria-hidden="true"></span>';
+			} elseif ( $uniform_price ) {
 				$swatch_inner = $this->uniform_price_inner_html( $effective_price, $effective_price_type );
+				echo '<span class="pab-opt-price pab-image-swatch-label-price">' . wp_kses_post( $swatch_inner ) . '</span>';
 			} elseif ( $per_option ) {
 				$swatch_inner = $this->per_option_field_label_prices_inner_html( $options, $effective_price_type, $swatch_custom_flat );
+				echo '<span class="pab-opt-price pab-image-swatch-label-price">' . wp_kses_post( $swatch_inner ) . '</span>';
 			} else {
 				$swatch_inner = '(' . esc_html__( 'Free', 'pab' ) . ')';
+				echo '<span class="pab-opt-price pab-image-swatch-label-price">' . wp_kses_post( $swatch_inner ) . '</span>';
 			}
-			echo '<span class="pab-opt-price pab-image-swatch-label-price">' . wp_kses_post( $swatch_inner ) . '</span>';
-		} elseif ( $is_nested && $popup_parent_uniform ) {
-			echo wp_kses_post( $this->uniform_price_hint_html( $popup_parent_price, $popup_parent_price_type ) );
-		} elseif ( $uniform_price ) {
+		} elseif ( $uniform_price && ! ( $is_nested && $popup_parent_uniform ) ) {
 			echo wp_kses_post( $this->uniform_price_hint_html( $effective_price, $effective_price_type ) );
 		} elseif ( $per_option && $is_choice ) {
 			echo wp_kses_post( $this->per_option_field_label_prices_html( $options, $effective_price_type, 0.0 ) );
-		} elseif ( ! $is_choice ) {
+		} elseif ( ! $is_choice && ! ( $is_nested && $popup_parent_uniform ) ) {
 			echo wp_kses_post( $this->uniform_price_hint_html( $effective_price, $effective_price_type ) );
 		}
 		if ( in_array( $type, [ 'file', 'image_upload' ], true ) || $swatch_allow_custom ) {

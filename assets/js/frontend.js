@@ -57,6 +57,38 @@
         return '(+' + formatPriceWcAmountHtml(p) + ')';
     }
 
+    /** Snapshot PHP-rendered label hint (range / single / hidden) before JS overwrites it; restored when all swatches are cleared. */
+    function cacheImageSwatchDefaultLabel($field) {
+        if (!$field || !$field.length || !$field.is('.pab-field-type-image_swatch')) {
+            return;
+        }
+        var $priceSpan = $field.find('.pab-image-swatch-label-price').first();
+        if (!$priceSpan.length || $priceSpan.data('pab-default-label-cached')) {
+            return;
+        }
+        $priceSpan.data('pab-default-label-html', $priceSpan.html());
+        $priceSpan.data('pab-default-label-hidden', !!$priceSpan.prop('hidden'));
+        $priceSpan.data('pab-default-label-cached', true);
+    }
+
+    function restoreImageSwatchDefaultLabel($priceSpan) {
+        if (!$priceSpan || !$priceSpan.length) {
+            return;
+        }
+        var defHtml = $priceSpan.data('pab-default-label-html');
+        if (defHtml === undefined) {
+            return;
+        }
+        $priceSpan.html(defHtml);
+        var hid = !!$priceSpan.data('pab-default-label-hidden');
+        $priceSpan.prop('hidden', hid);
+        if (hid) {
+            $priceSpan.attr('aria-hidden', 'true');
+        } else {
+            $priceSpan.removeAttr('aria-hidden');
+        }
+    }
+
     function syncImageSwatchLabelPrice($field) {
         if (!$field || !$field.length || !$field.is('.pab-field-type-image_swatch')) {
             return;
@@ -67,16 +99,20 @@
         }
         var $checked = $field.find('.pab-image-swatch-wrap .pab-swatch-radio:checked');
         if (!$checked.length) {
+            restoreImageSwatchDefaultLabel($priceSpan);
             return;
         }
         var cmode = String($field.attr('data-choice-price-mode') || '');
-        var customVal = (pabData && pabData.swatchCustomValue) ? String(pabData.swatchCustomValue) : '';
 
         if (cmode === 'uniform') {
+            if ($field.hasClass('pab-field-wrap--nested')) {
+                $priceSpan.empty().prop('hidden', true).attr('aria-hidden', 'true');
+                return;
+            }
             var fp = parseFloat($field.attr('data-price')) || 0;
             var pt = String($field.attr('data-price-type') || 'flat');
             var html = imageSwatchUniformLabelHtml(fp, pt);
-            $priceSpan.html(html).prop('hidden', false);
+            $priceSpan.html(html).prop('hidden', false).removeAttr('aria-hidden');
             return;
         }
 
@@ -85,25 +121,18 @@
         }
 
         var optPrice = parseFloat($checked.attr('data-option-price')) || 0;
-        var isCustom = String($checked.attr('data-pab-custom-upload') || '') === '1'
-            || (customVal !== '' && String($checked.val() || '') === customVal);
 
-        if (isCustom) {
-            var $fileWrap = $field.find('.pab-swatch-custom-upload .pab-file-upload--image').first();
-            if (!$fileWrap.length || !$fileWrap.hasClass('pab-has-file')) {
-                $priceSpan.html(freeLabelParenHtml()).prop('hidden', false);
-                return;
-            }
-        }
+        // Label follows data-option-price (incl. custom upload surcharge). Live total still uses
+        // shouldZeroImageSwatchCustomOptionPrice() until a file is chosen.
 
         if (optPrice <= 0) {
-            $priceSpan.html(freeLabelParenHtml()).prop('hidden', false);
+            $priceSpan.html(freeLabelParenHtml()).prop('hidden', false).removeAttr('aria-hidden');
             return;
         }
-        $priceSpan.html('(+' + formatPriceWcAmountHtml(optPrice) + ')').prop('hidden', false);
+        $priceSpan.html('(+' + formatPriceWcAmountHtml(optPrice) + ')').prop('hidden', false).removeAttr('aria-hidden');
     }
 
-    /** Custom image swatch: no surcharge until a file is chosen (matches label + cart intent). */
+    /** Custom image swatch: live total stays 0 until a file is chosen (server charges on add-to-cart). */
     function shouldZeroImageSwatchCustomOptionPrice($field, $radio) {
         if (!$field.length || !$field.is('.pab-field-type-image_swatch')) {
             return false;
@@ -167,6 +196,25 @@
                     nestIndex: isNested ? parseInt(index, 10) : undefined,
                 };
                 return;
+            }
+
+            if ($fieldWrap.is('.pab-field-type-file, .pab-field-type-image_upload')) {
+                var $fileInp = $fieldWrap.find('input.pab-file-upload-input').first();
+                if ($fileInp.length) {
+                    var fileEl = $fileInp.get(0);
+                    var $fwrap = $fileInp.closest('.pab-file-upload');
+                    var hasFile = $fwrap.hasClass('pab-has-file')
+                        || !!(fileEl && fileEl.files && fileEl.files.length);
+                    values[storeKey] = {
+                        fieldId: fieldId,
+                        value: hasFile ? ($fileInp.val() || '1') : '',
+                        optionPrice: 0,
+                        popupNested: isNested,
+                        topIndex: isNested ? parseInt(topIdx, 10) : undefined,
+                        nestIndex: isNested ? parseInt(index, 10) : undefined,
+                    };
+                    return;
+                }
             }
 
             $input = $fieldWrap.find('input.pab-field-input, textarea.pab-field-input');
@@ -245,6 +293,7 @@
     // -------------------------------------------------------------------------
     function calcAddonPrice(addonValues, baseP, qty) {
         var extra = 0;
+        var uniformPopupCharged = {};
         $.each(addonValues, function (index, data) {
             if (!data || !data.value) {
                 return;
@@ -265,6 +314,11 @@
                     if (!nestedPopupUniformShouldCharge(data, subField)) {
                         return;
                     }
+                    var popupKey = pf.id ? String(pf.id) : ('top_' + data.topIndex);
+                    if (uniformPopupCharged[popupKey]) {
+                        return;
+                    }
+                    uniformPopupCharged[popupKey] = true;
                     fieldPrice = parseFloat(pf.price) || 0;
                     priceType  = pf.price_type || 'flat';
                 } else {
@@ -971,6 +1025,9 @@
         });
         $('.pab-child-variation-select').each(function () {
             refreshChildVariationPrice($(this));
+        });
+        $('.pab-field-wrap.pab-field-type-image_swatch').each(function () {
+            cacheImageSwatchDefaultLabel($(this));
         });
         $('.pab-file-upload').each(function () {
             syncPabFileUpload($(this));

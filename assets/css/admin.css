@@ -1049,7 +1049,7 @@
 	text-decoration: underline;
 }
 
-/* Popup with “Same price for all sub-fields”: hide per–sub-field pricing UI */
+/* Popup with “Single price for all sub-fields”: hide per–sub-field pricing UI */
 #pab_addons_data .pab-addon-row--nested.pab-nested-subfield-pricing-suppressed .pab-choice-pricing-section,
 #pab_addons_data .pab-addon-row--nested.pab-nested-subfield-pricing-suppressed .pab-field-level-pricing,
 #pab_group_addons .pab-addon-row--nested.pab-nested-subfield-pricing-suppressed .pab-choice-pricing-section,

@@ -518,6 +518,7 @@ class PAB_Cart_Hooks {
 		}
 
 		// --- Popup nested add-on fields ---
+		$popup_uniform_charged = [];
 		if ( ! empty( $_POST['pab_popup'] ) && is_array( $_POST['pab_popup'] ) ) {
 			$addon_fields = PAB_Group_Resolver::resolve_addon_fields( (int) $product_id );
 			foreach ( wp_unslash( $_POST['pab_popup'] ) as $pid_raw => $rows ) {
@@ -592,8 +593,14 @@ class PAB_Cart_Hooks {
 							$charge = ( $posted !== '' );
 						}
 						if ( $charge ) {
-							$price      = (float) ( $popup_cfg['price'] ?? 0 );
-							$price_type = $popup_cfg['price_type'] ?? 'flat';
+							if ( empty( $popup_uniform_charged[ $pid ] ) ) {
+								$price      = (float) ( $popup_cfg['price'] ?? 0 );
+								$price_type = $popup_cfg['price_type'] ?? 'flat';
+								$popup_uniform_charged[ $pid ] = true;
+							} else {
+								$price      = 0.0;
+								$price_type = 'flat';
+							}
 						}
 					}
 
@@ -657,8 +664,14 @@ class PAB_Cart_Hooks {
 					$price = (float) ( $field['price'] ?? 0 );
 					$pu_pt = 'flat';
 					if ( 'uniform' === PAB_Data::sanitize_nested_price_mode( $popup_cfg['nested_price_mode'] ?? 'per_field' ) ) {
-						$price = (float) ( $popup_cfg['price'] ?? 0 );
-						$pu_pt = $popup_cfg['price_type'] ?? 'flat';
+						if ( empty( $popup_uniform_charged[ $pid ] ) ) {
+							$price = (float) ( $popup_cfg['price'] ?? 0 );
+							$pu_pt = $popup_cfg['price_type'] ?? 'flat';
+							$popup_uniform_charged[ $pid ] = true;
+						} else {
+							$price = 0.0;
+							$pu_pt = 'flat';
+						}
 					}
 					$file_array = [
 						'name'     => $_FILES['pab_popup_file']['name'][ $pid ][ $ci ],
