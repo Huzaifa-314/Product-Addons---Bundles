@@ -4,8 +4,24 @@ defined( 'ABSPATH' ) || exit;
 class PAB_Frontend {
 
 	public function __construct() {
+		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_cart_swatch_styles' ], 15 );
 		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_assets' ] );
 		add_action( 'woocommerce_before_add_to_cart_button', [ $this, 'render_fields' ], 10 );
+	}
+
+	/**
+	 * Swatch thumbnails in cart fragments (Woodmart side-cart, mini-cart) need CSS on every page.
+	 */
+	public function enqueue_cart_swatch_styles() {
+		if ( is_admin() ) {
+			return;
+		}
+		wp_enqueue_style(
+			'pab-cart-swatch',
+			PAB_URL . 'assets/css/pab-cart-swatch.css',
+			[],
+			PAB_VERSION
+		);
 	}
 
 	public function enqueue_assets() {

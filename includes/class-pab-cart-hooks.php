@@ -72,6 +72,168 @@ class PAB_Cart_Hooks {
 	}
 
 	/**
+	 * Allowed tags for linked swatch thumbnail HTML in cart / order item meta.
+	 *
+	 * @return array<string,array<string,bool>>
+	 */
+	private function cart_swatch_value_allowed_html(): array {
+		return [
+			'a'   => [
+				'class'  => true,
+				'href'   => true,
+				'target' => true,
+				'rel'    => true,
+			],
+			'img' => [
+				'class'    => true,
+				'src'      => true,
+				'alt'      => true,
+				'width'    => true,
+				'height'   => true,
+				'decoding' => true,
+			],
+		];
+	}
+
+	/**
+	 * Cart/checkout display for image_swatch: optional linked thumbnail + label text + surcharge hint.
+	 *
+	 * @param array<string,mixed> $addon        Row from pab_addons.
+	 * @param string              $text_value   Stored display label (filename, custom text, etc.).
+	 * @param float               $base_for_display Product base price for percentage surcharges.
+	 * @param int                 $line_qty     Line quantity.
+	 * @param bool                $append_surcharge When false, omit price hint (uniform popup group shows one total).
+	 */
+	private function format_image_swatch_cart_value( array $addon, string $text_value, float $base_for_display, int $line_qty, bool $append_surcharge = true ): string {
+		$img_url = '';
+		if ( ! empty( $addon['swatch_image_url'] ) ) {
+			$img_url = esc_url_raw( (string) $addon['swatch_image_url'] );
+		}
+		if ( $img_url === '' && ! empty( $addon['file_url'] ) ) {
+			$img_url = esc_url_raw( (string) $addon['file_url'] );
+		}
+
+		$suffix = '';
+		if ( $append_surcharge ) {
+			$surcharge = $this->compute_addon_surcharge( $addon, $base_for_display, $line_qty );
+			if ( $surcharge > 0 ) {
+				$suffix = ' (+' . wc_price( $surcharge ) . ')';
+			}
+		}
+
+		if ( $img_url === '' ) {
+			return esc_html( $text_value ) . $suffix;
+		}
+
+		$shape = PAB_Data::sanitize_image_swatch_shape( $addon['swatch_shape'] ?? 'square' );
+		$shape = ( 'circle' === $shape ) ? 'circle' : 'square';
+		$shape_class = 'pab-cart-swatch-link--' . $shape;
+
+		$inner = '<a class="pab-cart-swatch-link ' . esc_attr( $shape_class ) . '" href="' . esc_url( $img_url ) . '" target="_blank" rel="noopener noreferrer">'
+			. '<img class="pab-cart-swatch-img pab-cart-swatch-img--' . esc_attr( $shape ) . '" src="' . esc_url( $img_url ) . '" alt="" width="30" height="30" decoding="async" />'
+			. '</a>';
+		$out = wp_kses( $inner, $this->cart_swatch_value_allowed_html() );
+		return $out . $suffix;
+	}
+
+	/**
+	 * HTML for one add-on row (used for popup groups and single rows).
+	 *
+	 * @param array<string,mixed> $addon
+	 * @param bool                $append_surcharge Per-line surcharge hint (false for uniform popup groups).
+	 */
+	private function format_addon_cart_display_segment( array $addon, float $base_for_display, int $line_qty, bool $append_surcharge = true ): string {
+		$type      = $addon['type'] ?? '';
+		$raw_value = isset( $addon['value'] ) ? (string) $addon['value'] : '';
+
+		if ( in_array( $type, [ 'file', 'image_upload' ], true ) ) {
+			if ( $raw_value === '' ) {
+				return '';
+			}
+			$display_value = '<a href="' . esc_url( $raw_value ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'View File', 'pab' ) . '</a>';
+			if ( $append_surcharge ) {
+				$surcharge = $this->compute_addon_surcharge( $addon, $base_for_display, $line_qty );
+				if ( $surcharge > 0 ) {
+					$display_value .= ' (+' . wc_price( $surcharge ) . ')';
+				}
+			}
+			return $display_value;
+		}
+
+		if ( 'image_swatch' === $type ) {
+			return $this->format_image_swatch_cart_value( $addon, $raw_value, $base_for_display, $line_qty, $append_surcharge );
+		}
+
+		$display_value = esc_html( $raw_value );
+		if ( $append_surcharge ) {
+			$surcharge = $this->compute_addon_surcharge( $addon, $base_for_display, $line_qty );
+			if ( $surcharge > 0 ) {
+				$display_value .= ' (+' . wc_price( $surcharge ) . ')';
+			}
+		}
+		return $display_value;
+	}
+
+	/**
+	 * Merged popup HTML: stacked values + optional single surcharge line for uniform nested pricing.
+	 *
+	 * @param array<string,mixed> $addon Merged row with pab_popup_parts and pab_popup_nested_price_mode.
+	 */
+	private function build_popup_group_cart_display_html( array $addon, float $base_for_display, int $line_qty ): string {
+		$parts = $addon['pab_popup_parts'] ?? [];
+		if ( ! is_array( $parts ) || $parts === [] ) {
+			return '';
+		}
+
+		$mode            = PAB_Data::sanitize_nested_price_mode( $addon['pab_popup_nested_price_mode'] ?? 'per_field' );
+		$per_line_price  = ( 'uniform' !== $mode );
+
+		$segments = [];
+		foreach ( $parts as $part ) {
+			if ( ! is_array( $part ) ) {
+				continue;
+			}
+			$segments[] = $this->format_addon_cart_display_segment( $part, $base_for_display, $line_qty, $per_line_price );
+		}
+		$segments = array_values(
+			array_filter(
+				$segments,
+				static function ( $s ) {
+					return $s !== null && $s !== '';
+				}
+			)
+		);
+		$inner = implode( '<br />', $segments );
+
+		if ( ! $per_line_price ) {
+			$total = 0.0;
+			foreach ( $parts as $part ) {
+				if ( is_array( $part ) ) {
+					$total += $this->compute_addon_surcharge( $part, $base_for_display, $line_qty );
+				}
+			}
+			if ( $total > 0 ) {
+				$inner .= '<br /><span class="pab-popup-cart-group-surcharge">(+' . wc_price( $total ) . ')</span>';
+			}
+		}
+
+		/* Use <span> so markup stays valid inside Woodmart’s <span class="item-variation-value"> (no <div> in <span>). */
+		return '<span class="pab-popup-cart-values">' . wp_kses_post( $inner ) . '</span>';
+	}
+
+	/**
+	 * @param array<string,mixed> $opt Resolved option row.
+	 */
+	private function swatch_image_url_from_option( array $opt ): string {
+		$raw = isset( $opt['image'] ) ? trim( (string) $opt['image'] ) : '';
+		if ( $raw === '' ) {
+			return '';
+		}
+		$url = esc_url_raw( $raw );
+		return $url !== '' ? $url : '';
+	}
+
+	/**
 	 * Monetary amount this add-on adds for one unit of the logic (matches before_calculate_totals).
 	 *
 	 * @param array<string,mixed> $addon      Cart addon row.
@@ -468,10 +630,11 @@ class PAB_Cart_Hooks {
 					continue;
 				}
 
-				$file_url       = '';
-				$display_value  = $posted;
-				$is_swatch_post = ( 'image_swatch' === ( $field['type'] ?? '' ) );
-				$is_custom_path = $is_swatch_post && ! empty( $field['swatch_allow_custom_upload'] ) && $posted === PAB_Data::SWATCH_CUSTOM_POST_VALUE;
+				$file_url            = '';
+				$swatch_image_url    = '';
+				$display_value       = $posted;
+				$is_swatch_post      = ( 'image_swatch' === ( $field['type'] ?? '' ) );
+				$is_custom_path      = $is_swatch_post && ! empty( $field['swatch_allow_custom_upload'] ) && $posted === PAB_Data::SWATCH_CUSTOM_POST_VALUE;
 
 				if ( $is_custom_path ) {
 					$mode = $field['choice_price_mode'] ?? 'per_option';
@@ -501,6 +664,9 @@ class PAB_Cart_Hooks {
 					}
 					if ( $resolved ) {
 						$display_value = $this->choice_option_display_label( $field, $resolved['opt'], $resolved['index'] );
+						if ( 'image_swatch' === ( $field['type'] ?? '' ) ) {
+							$swatch_image_url = $this->swatch_image_url_from_option( $resolved['opt'] );
+						}
 					}
 				} elseif ( $field['type'] === 'checkbox' ) {
 					$price = $posted ? (float) ( $field['price'] ?? 0 ) : 0;
@@ -524,6 +690,12 @@ class PAB_Cart_Hooks {
 				];
 				if ( $file_url !== '' ) {
 					$row['file_url'] = $file_url;
+				}
+				if ( $swatch_image_url !== '' ) {
+					$row['swatch_image_url'] = $swatch_image_url;
+				}
+				if ( 'image_swatch' === ( $field['type'] ?? '' ) ) {
+					$row['swatch_shape'] = PAB_Data::sanitize_image_swatch_shape( $field['image_swatch_shape'] ?? 'square' );
 				}
 				$addon_data[] = $row;
 			}
@@ -580,8 +752,10 @@ class PAB_Cart_Hooks {
 			}
 		}
 
-		// --- Popup nested add-on fields ---
+		// --- Popup nested add-on fields (merged into one cart line per popup) ---
 		$popup_uniform_charged = [];
+		$pab_popup_head_by_pid = [];
+		$pab_popup_merge_buckets = [];
 		if ( ! empty( $_POST['pab_popup'] ) && is_array( $_POST['pab_popup'] ) ) {
 			$addon_fields = PAB_Group_Resolver::resolve_addon_fields( (int) $product_id );
 			foreach ( wp_unslash( $_POST['pab_popup'] ) as $pid_raw => $rows ) {
@@ -597,6 +771,7 @@ class PAB_Cart_Hooks {
 				if ( $popup_head === '' ) {
 					$popup_head = __( 'Popup', 'pab' );
 				}
+				$pab_popup_head_by_pid[ $pid ] = $popup_head;
 				$nested = $popup_cfg['nested_fields'] ?? [];
 				foreach ( $rows as $ci => $value ) {
 					$ci = (int) $ci;
@@ -605,7 +780,6 @@ class PAB_Cart_Hooks {
 					}
 					$field  = $nested[ $ci ];
 					$posted = sanitize_text_field( is_string( $value ) ? $value : '' );
-					$label  = sprintf( '%1$s — %2$s', $popup_head, $field['label'] ?? __( 'Option', 'pab' ) );
 					$price      = 0.0;
 					$price_type = $field['price_type'] ?? 'flat';
 
@@ -613,10 +787,11 @@ class PAB_Cart_Hooks {
 						continue;
 					}
 
-					$file_url       = '';
-					$display_value  = $posted;
-					$is_swatch_post = ( 'image_swatch' === ( $field['type'] ?? '' ) );
-					$is_custom_path = $is_swatch_post && ! empty( $field['swatch_allow_custom_upload'] ) && $posted === PAB_Data::SWATCH_CUSTOM_POST_VALUE;
+					$file_url           = '';
+					$swatch_image_url   = '';
+					$display_value      = $posted;
+					$is_swatch_post     = ( 'image_swatch' === ( $field['type'] ?? '' ) );
+					$is_custom_path     = $is_swatch_post && ! empty( $field['swatch_allow_custom_upload'] ) && $posted === PAB_Data::SWATCH_CUSTOM_POST_VALUE;
 
 					if ( $is_custom_path ) {
 						$mode = $field['choice_price_mode'] ?? 'per_option';
@@ -645,6 +820,9 @@ class PAB_Cart_Hooks {
 						}
 						if ( $resolved ) {
 							$display_value = $this->choice_option_display_label( $field, $resolved['opt'], $resolved['index'] );
+							if ( 'image_swatch' === ( $field['type'] ?? '' ) ) {
+								$swatch_image_url = $this->swatch_image_url_from_option( $resolved['opt'] );
+							}
 						}
 					} elseif ( $field['type'] === 'checkbox' ) {
 						$price = $posted ? (float) ( $field['price'] ?? 0 ) : 0;
@@ -680,7 +858,6 @@ class PAB_Cart_Hooks {
 					}
 
 					$row = [
-						'label'      => $label,
 						'value'      => $display_value,
 						'price'      => $price,
 						'price_type' => $price_type,
@@ -689,7 +866,13 @@ class PAB_Cart_Hooks {
 					if ( $file_url !== '' ) {
 						$row['file_url'] = $file_url;
 					}
-					$addon_data[] = $row;
+					if ( $swatch_image_url !== '' ) {
+						$row['swatch_image_url'] = $swatch_image_url;
+					}
+					if ( 'image_swatch' === ( $field['type'] ?? '' ) ) {
+						$row['swatch_shape'] = PAB_Data::sanitize_image_swatch_shape( $field['image_swatch_shape'] ?? 'square' );
+					}
+					$pab_popup_merge_buckets[ $pid ][] = $row;
 				}
 			}
 		}
@@ -713,6 +896,7 @@ class PAB_Cart_Hooks {
 				if ( $popup_head === '' ) {
 					$popup_head = __( 'Popup', 'pab' );
 				}
+				$pab_popup_head_by_pid[ $pid ] = $popup_head;
 				$nested = $popup_cfg['nested_fields'] ?? [];
 				foreach ( $inner as $ci => $filename ) {
 					if ( empty( $filename ) ) {
@@ -729,7 +913,6 @@ class PAB_Cart_Hooks {
 					if ( ! in_array( $field['type'], [ 'file', 'image_upload' ], true ) ) {
 						continue;
 					}
-					$label = sprintf( '%1$s — %2$s', $popup_head, $field['label'] ?? '' );
 					$price = (float) ( $field['price'] ?? 0 );
 					$pu_pt = 'flat';
 					if ( 'uniform' === PAB_Data::sanitize_nested_price_mode( $popup_cfg['nested_price_mode'] ?? 'per_field' ) ) {
@@ -758,8 +941,7 @@ class PAB_Cart_Hooks {
 					require_once ABSPATH . 'wp-admin/includes/file.php';
 					$upload = wp_handle_upload( $file_array, [ 'test_form' => false ] );
 					if ( ! empty( $upload['url'] ) ) {
-						$addon_data[] = [
-							'label'      => $label,
+						$pab_popup_merge_buckets[ $pid ][] = [
 							'value'      => $upload['url'],
 							'price'      => $price,
 							'price_type' => $pu_pt,
@@ -768,6 +950,32 @@ class PAB_Cart_Hooks {
 					}
 				}
 			}
+		}
+
+		$pab_addon_fields_for_popup_meta = PAB_Group_Resolver::resolve_addon_fields( (int) $product_id );
+		foreach ( $pab_popup_merge_buckets as $merge_pid => $parts ) {
+			if ( empty( $parts ) ) {
+				continue;
+			}
+			$merge_label = isset( $pab_popup_head_by_pid[ $merge_pid ] )
+				? trim( (string) $pab_popup_head_by_pid[ $merge_pid ] )
+				: '';
+			if ( $merge_label === '' ) {
+				$merge_label = __( 'Popup', 'pab' );
+			}
+			$popup_cfg_merge = $this->find_popup_field_by_id( $pab_addon_fields_for_popup_meta, $merge_pid );
+			$nested_mode     = $popup_cfg_merge
+				? PAB_Data::sanitize_nested_price_mode( $popup_cfg_merge['nested_price_mode'] ?? 'per_field' )
+				: 'per_field';
+			$addon_data[] = [
+				'label'                       => $merge_label,
+				'value'                       => '',
+				'type'                        => 'pab_popup_group',
+				'pab_popup_parts'             => $parts,
+				'pab_popup_nested_price_mode' => $nested_mode,
+				'price'                       => 0.0,
+				'price_type'                  => 'flat',
+			];
 		}
 
 		// --- Child products ---
@@ -859,6 +1067,12 @@ class PAB_Cart_Hooks {
 			// Addon prices
 			if ( ! empty( $cart_item['pab_addons'] ) ) {
 				foreach ( $cart_item['pab_addons'] as $addon ) {
+					if ( ! empty( $addon['pab_popup_parts'] ) && is_array( $addon['pab_popup_parts'] ) ) {
+						foreach ( $addon['pab_popup_parts'] as $part ) {
+							$extra += $this->compute_addon_surcharge( $part, $base_price, $qty );
+						}
+						continue;
+					}
 					$extra += $this->compute_addon_surcharge( $addon, $base_price, $qty );
 				}
 			}
@@ -891,19 +1105,33 @@ class PAB_Cart_Hooks {
 				if ( $label === '' ) {
 					$label = __( 'Add-on', 'pab' );
 				}
+
+				if ( ! empty( $addon['pab_popup_parts'] ) && is_array( $addon['pab_popup_parts'] ) ) {
+					$item_data[] = [
+						'key'   => esc_html( $label ),
+						'value' => $this->build_popup_group_cart_display_html( $addon, $base_for_display, $line_qty ),
+					];
+					continue;
+				}
+
 				$raw_value = isset( $addon['value'] ) ? (string) $addon['value'] : '';
 
 				if ( in_array( $addon['type'] ?? '', [ 'file', 'image_upload' ], true ) ) {
 					$display_value = '<a href="' . esc_url( $raw_value ) . '" target="_blank">' . esc_html__( 'View File', 'pab' ) . '</a>';
-				} elseif ( 'image_swatch' === ( $addon['type'] ?? '' ) && ! empty( $addon['file_url'] ) ) {
-					$display_value = esc_html( $raw_value );
-					$display_value .= ' — <a href="' . esc_url( $addon['file_url'] ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'View image', 'pab' ) . '</a>';
+				} elseif ( 'image_swatch' === ( $addon['type'] ?? '' ) ) {
+					$display_value = $this->format_image_swatch_cart_value( $addon, $raw_value, $base_for_display, $line_qty );
 				} else {
 					$display_value = esc_html( $raw_value );
+					$surcharge     = $this->compute_addon_surcharge( $addon, $base_for_display, $line_qty );
+					if ( $surcharge > 0 ) {
+						$display_value .= ' (+' . wc_price( $surcharge ) . ')';
+					}
 				}
-				$surcharge = $this->compute_addon_surcharge( $addon, $base_for_display, $line_qty );
-				if ( $surcharge > 0 ) {
-					$display_value .= ' (+' . wc_price( $surcharge ) . ')';
+				if ( in_array( $addon['type'] ?? '', [ 'file', 'image_upload' ], true ) ) {
+					$surcharge = $this->compute_addon_surcharge( $addon, $base_for_display, $line_qty );
+					if ( $surcharge > 0 ) {
+						$display_value .= ' (+' . wc_price( $surcharge ) . ')';
+					}
 				}
 				// WooCommerce treats empty 'key' as missing and reads 'name' instead; always send a non-empty key.
 				$item_data[] = [
@@ -936,21 +1164,44 @@ class PAB_Cart_Hooks {
 	// -------------------------------------------------------------------------
 	public function checkout_create_order_line_item( $item, $cart_item_key, $values, $order ) {
 		if ( ! empty( $values['pab_addons'] ) ) {
+			$line_qty = isset( $values['quantity'] ) ? (int) $values['quantity'] : 1;
+			/** @var WC_Product|null $line_product */
+			$line_product     = $values['data'] ?? null;
+			$fresh              = $line_product ? wc_get_product( $line_product->get_id() ) : null;
+			$base_for_display = $fresh ? (float) $fresh->get_price() : 0.0;
+
 			foreach ( $values['pab_addons'] as $addon ) {
 				$label = isset( $addon['label'] ) ? trim( (string) $addon['label'] ) : '';
 				if ( $label === '' ) {
 					$label = __( 'Add-on', 'pab' );
 				}
+
+				if ( ! empty( $addon['pab_popup_parts'] ) && is_array( $addon['pab_popup_parts'] ) ) {
+					$item->add_meta_data(
+						esc_html( $label ),
+						$this->build_popup_group_cart_display_html( $addon, $base_for_display, $line_qty ),
+						true
+					);
+					continue;
+				}
+
 				$type      = $addon['type'] ?? '';
 				$raw_value = isset( $addon['value'] ) ? (string) $addon['value'] : '';
 
 				if ( in_array( $type, [ 'file', 'image_upload' ], true ) && $raw_value !== '' ) {
 					$display_value = '<a href="' . esc_url( $raw_value ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'View File', 'pab' ) . '</a>';
-				} elseif ( 'image_swatch' === $type && ! empty( $addon['file_url'] ) ) {
-					$display_value = esc_html( $raw_value );
-					$display_value .= ' — <a href="' . esc_url( $addon['file_url'] ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'View image', 'pab' ) . '</a>';
+					$surcharge     = $this->compute_addon_surcharge( $addon, $base_for_display, $line_qty );
+					if ( $surcharge > 0 ) {
+						$display_value .= ' (+' . wc_price( $surcharge ) . ')';
+					}
+				} elseif ( 'image_swatch' === $type ) {
+					$display_value = $this->format_image_swatch_cart_value( $addon, $raw_value, $base_for_display, $line_qty );
 				} else {
 					$display_value = esc_html( $raw_value );
+					$surcharge     = $this->compute_addon_surcharge( $addon, $base_for_display, $line_qty );
+					if ( $surcharge > 0 ) {
+						$display_value .= ' (+' . wc_price( $surcharge ) . ')';
+					}
 				}
 
 				$item->add_meta_data(

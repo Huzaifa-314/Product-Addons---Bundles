@@ -1,0 +1,145 @@
+/**
+ * Cart line item image swatches (mini-cart, sidebar, cart, checkout).
+ * Loaded on all storefront pages so AJAX / Woodmart side-cart has correct layout.
+ */
+
+/* Woodmart and similar themes: reset button-like <a> and lock a fixed swatch box */
+a.pab-cart-swatch-link,
+a.pab-cart-swatch-link:hover,
+a.pab-cart-swatch-link:focus,
+a.pab-cart-swatch-link:active {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    max-width: 30px !important;
+    min-height: 30px !important;
+    max-height: 30px !important;
+    padding: 0 !important;
+    margin: 0 8px 0 0 !important;
+    line-height: 0 !important;
+    overflow: hidden;
+    flex-shrink: 0 !important;
+    flex-grow: 0 !important;
+    align-self: center;
+    border: 2px solid #333;
+    box-sizing: border-box;
+    /* Visible behind letterboxing when the asset is wider/taller than the swatch box */
+    background: #f5f5f5 !important;
+    box-shadow: none !important;
+    text-decoration: none !important;
+    color: transparent !important;
+    font-size: 0 !important;
+    letter-spacing: 0 !important;
+    vertical-align: middle;
+    text-align: center;
+}
+
+a.pab-cart-swatch-link--square {
+    border-radius: var(--wd-brd-radius, 4px);
+}
+
+a.pab-cart-swatch-link--circle {
+    border-radius: 50% !important;
+}
+
+a.pab-cart-swatch-link:focus-visible {
+    outline: 2px solid var(--wd-primary-color, #333);
+    outline-offset: 2px;
+}
+
+a.pab-cart-swatch-link img,
+img.pab-cart-swatch-img {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    object-fit: contain;
+    object-position: center;
+    margin: 0 !important;
+    padding: 0 !important;
+    vertical-align: middle;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+img.pab-cart-swatch-img--square {
+    border-radius: var(--wd-brd-radius, 4px);
+}
+
+img.pab-cart-swatch-img--circle {
+    border-radius: 50% !important;
+}
+
+/* -------------------------------------------------------------------------
+   Popup group: label + first value on one line; extra lines stack in value column
+   ------------------------------------------------------------------------- */
+.pab-popup-cart-values {
+    display: block;
+    text-align: left;
+}
+
+/* Uniform popup fee: one total after all values (not tied to the first line) */
+.pab-popup-cart-group-surcharge {
+    display: inline;
+    white-space: nowrap;
+}
+
+/*
+ * Woodmart (and themes using ul.variation): name + value are sibling spans in one <li>.
+ * Flex keeps the label on the same row as the first value line.
+ */
+ul.variation > li:has(.pab-popup-cart-values) {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    column-gap: 0.35em;
+}
+
+ul.variation > li:has(.pab-popup-cart-values) .item-variation-name {
+    flex: 0 0 auto;
+}
+
+ul.variation > li:has(.pab-popup-cart-values) .item-variation-value {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* wpautop() may wrap markup in <p>; keep first segment beside the label */
+ul.variation > li:has(.pab-popup-cart-values) .item-variation-value > p {
+    display: block;
+    margin: 0;
+    padding: 0;
+}
+
+/* Default WooCommerce dl.variation: float dt so first line of <dd> sits beside the label */
+dl.variation > dt:has(+ dd .pab-popup-cart-values) {
+    float: left;
+    clear: left;
+    margin: 0 0.35em 0 0;
+}
+
+dl.variation > dt:has(+ dd .pab-popup-cart-values) + dd {
+    overflow: hidden;
+    margin: 0;
+}
+
+dl.variation > dt:has(+ dd .pab-popup-cart-values) + dd > p {
+    margin: 0;
+    padding: 0;
+}
+
+.woocommerce dl.variation dd:has(.pab-popup-cart-values),
+.woocommerce-mini-cart dl.variation dd:has(.pab-popup-cart-values),
+.widget_shopping_cart dl.variation dd:has(.pab-popup-cart-values) {
+    overflow: hidden;
+}
+
+.woocommerce-mini-cart .cart_list dl dd:has(.pab-popup-cart-values),
+.woocommerce .cart_list dl dd:has(.pab-popup-cart-values) {
+    overflow: hidden;
+}
