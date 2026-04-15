@@ -582,6 +582,21 @@ class PAB_Cart_Hooks {
 						$price = (float) ( $field['price'] ?? 0 );
 					}
 
+					if ( 'uniform' === PAB_Data::sanitize_nested_price_mode( $popup_cfg['nested_price_mode'] ?? 'per_field' ) ) {
+						$charge = false;
+						if ( 'checkbox' === ( $field['type'] ?? '' ) ) {
+							$charge = (bool) $posted;
+						} elseif ( in_array( $field['type'], [ 'select', 'radio', 'image_swatch', 'text_swatch' ], true ) ) {
+							$charge = ( $posted !== '' );
+						} else {
+							$charge = ( $posted !== '' );
+						}
+						if ( $charge ) {
+							$price      = (float) ( $popup_cfg['price'] ?? 0 );
+							$price_type = $popup_cfg['price_type'] ?? 'flat';
+						}
+					}
+
 					if ( $posted === '' && ! in_array( $field['type'], [ 'checkbox' ], true ) ) {
 						if ( empty( $field['required'] ) ) {
 							continue;
@@ -640,6 +655,11 @@ class PAB_Cart_Hooks {
 					}
 					$label = sprintf( '%1$s — %2$s', $popup_head, $field['label'] ?? '' );
 					$price = (float) ( $field['price'] ?? 0 );
+					$pu_pt = 'flat';
+					if ( 'uniform' === PAB_Data::sanitize_nested_price_mode( $popup_cfg['nested_price_mode'] ?? 'per_field' ) ) {
+						$price = (float) ( $popup_cfg['price'] ?? 0 );
+						$pu_pt = $popup_cfg['price_type'] ?? 'flat';
+					}
 					$file_array = [
 						'name'     => $_FILES['pab_popup_file']['name'][ $pid ][ $ci ],
 						'type'     => $_FILES['pab_popup_file']['type'][ $pid ][ $ci ],
@@ -660,7 +680,7 @@ class PAB_Cart_Hooks {
 							'label'      => $label,
 							'value'      => $upload['url'],
 							'price'      => $price,
-							'price_type' => 'flat',
+							'price_type' => $pu_pt,
 							'type'       => $field['type'],
 						];
 					}

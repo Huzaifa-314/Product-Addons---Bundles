@@ -158,7 +158,7 @@ class PAB_Display_Fields {
 		}
 		$input_name = 'pab_addon[' . (int) $index . ']';
 		$file_name  = 'pab_addon_file[' . (int) $index . ']';
-		$this->render_field_inner( $field, $input_name, $file_name, (int) $index, false );
+		$this->render_field_inner( $field, $input_name, $file_name, (int) $index, false, -1, '', false, 0.0, 'flat' );
 	}
 
 	/**
@@ -187,8 +187,12 @@ class PAB_Display_Fields {
 
 		$dialog_id = 'pab-popup-' . $field_id;
 		$nested    = isset( $field['nested_fields'] ) && is_array( $field['nested_fields'] ) ? $field['nested_fields'] : [];
+		$n_mode    = PAB_Data::sanitize_nested_price_mode( $field['nested_price_mode'] ?? 'per_field' );
+		$n_uniform = ( 'uniform' === $n_mode );
+		$pop_price = (float) ( $field['price'] ?? 0 );
+		$pop_pt    = $field['price_type'] ?? 'flat';
 
-		echo '<div class="pab-field-wrap pab-field-type-popup" data-index="' . esc_attr( (string) $list_index ) . '" data-field-id="' . esc_attr( $field_id ) . '" data-price="0" data-price-type="flat" data-choice-price-mode="">';
+		echo '<div class="pab-field-wrap pab-field-type-popup" data-index="' . esc_attr( (string) $list_index ) . '" data-field-id="' . esc_attr( $field_id ) . '" data-nested-price-mode="' . esc_attr( $n_mode ) . '" data-price="' . esc_attr( $n_uniform ? $pop_price : '0' ) . '" data-price-type="' . esc_attr( $n_uniform ? $pop_pt : 'flat' ) . '" data-choice-price-mode="">';
 		echo '<label class="pab-field-label" for="' . esc_attr( $btn_id ) . '">';
 		echo '<span class="pab-field-label__main">' . esc_html( $label );
 		if ( $required ) {
@@ -225,7 +229,7 @@ class PAB_Display_Fields {
 			}
 			$input_name = 'pab_popup[' . $field_id . '][' . (int) $ni . ']';
 			$file_name  = 'pab_popup_file[' . $field_id . '][' . (int) $ni . ']';
-			$this->render_field_inner( $child, $input_name, $file_name, (int) $ni, true, $list_index, $field_id );
+			$this->render_field_inner( $child, $input_name, $file_name, (int) $ni, true, $list_index, $field_id, $n_uniform, $pop_price, $pop_pt );
 		}
 		echo '</div>';
 		// `.button.alt` for Woo; Woodmart primary look via CSS variables on `.pab-popup-done` (avoid `.single_add_to_cart_button` — cart ::before icon).
@@ -239,7 +243,7 @@ class PAB_Display_Fields {
 	/**
 	 * @param array<string,mixed> $field
 	 */
-	private function render_field_inner( array $field, string $input_name, string $file_input_name, int $data_index, bool $is_nested, int $popup_top_index = -1, string $popup_container_id = '' ): void {
+	private function render_field_inner( array $field, string $input_name, string $file_input_name, int $data_index, bool $is_nested, int $popup_top_index = -1, string $popup_container_id = '', bool $popup_parent_uniform = false, float $popup_parent_price = 0.0, string $popup_parent_price_type = 'flat' ): void {
 		$field_id   = isset( $field['id'] ) ? sanitize_key( (string) $field['id'] ) : '';
 		$type       = $field['type'] ?? 'text';
 		$label      = $field['label'] ?? '';
@@ -252,9 +256,18 @@ class PAB_Display_Fields {
 		$placeholder = isset( $field['placeholder'] ) ? trim( (string) $field['placeholder'] ) : '';
 		$ph_attr    = $placeholder !== '' ? ' placeholder="' . esc_attr( $placeholder ) . '"' : '';
 
-		$is_choice     = in_array( $type, self::choice_types(), true );
-		$uniform_price = $is_choice && 'uniform' === $choice_mode;
-		$per_option    = $is_choice && 'per_option' === $choice_mode;
+		$is_choice = in_array( $type, self::choice_types(), true );
+
+		$effective_price      = ( $is_nested && $popup_parent_uniform ) ? $popup_parent_price : $price;
+		$effective_price_type = ( $is_nested && $popup_parent_uniform ) ? $popup_parent_price_type : $price_type;
+		$choice_mode_effective = ( $is_nested && $popup_parent_uniform && $is_choice ) ? 'uniform' : $choice_mode;
+
+		$uniform_price = $is_choice && 'uniform' === $choice_mode_effective;
+		$per_option    = $is_choice && 'per_option' === $choice_mode_effective;
+
+		$data_price_attr  = ( $is_nested && $popup_parent_uniform ) ? $popup_parent_price : $price;
+		$data_pt_attr     = ( $is_nested && $popup_parent_uniform ) ? $popup_parent_price_type : $price_type;
+		$data_cmode_attr  = $is_choice ? $choice_mode_effective : '';
 
 		$swatch_allow_custom = ( 'image_swatch' === $type && ! empty( $field['swatch_allow_custom_upload'] ) );
 
@@ -277,7 +290,7 @@ class PAB_Display_Fields {
 			$ctx_attr = ' data-pab-popup-top-index="' . esc_attr( (string) $popup_top_index ) . '" data-pab-popup-container-id="' . esc_attr( $popup_container_id ) . '"';
 		}
 
-		echo '<div class="' . esc_attr( $wrap_class ) . '" data-index="' . esc_attr( (string) $data_index ) . '" data-field-id="' . esc_attr( $field_id ) . '" data-price="' . esc_attr( $price ) . '" data-price-type="' . esc_attr( $price_type ) . '" data-choice-price-mode="' . esc_attr( $is_choice ? $choice_mode : '' ) . '"' . ( $swatch_allow_custom ? ' data-pab-swatch-customer-upload="1"' : '' ) . $ctx_attr . '>';
+		echo '<div class="' . esc_attr( $wrap_class ) . '" data-index="' . esc_attr( (string) $data_index ) . '" data-field-id="' . esc_attr( $field_id ) . '" data-price="' . esc_attr( $data_price_attr ) . '" data-price-type="' . esc_attr( $data_pt_attr ) . '" data-choice-price-mode="' . esc_attr( $data_cmode_attr ) . '"' . ( $swatch_allow_custom ? ' data-pab-swatch-customer-upload="1"' : '' ) . $ctx_attr . '>';
 
 		echo '<label class="pab-field-label"><span class="pab-field-label__main">';
 		echo esc_html( $label );
@@ -288,11 +301,11 @@ class PAB_Display_Fields {
 		if ( 'image_swatch' === $type ) {
 			echo '<span class="pab-opt-price pab-image-swatch-label-price" hidden></span>';
 		} elseif ( $uniform_price ) {
-			echo wp_kses_post( $this->uniform_price_hint_html( $price, $price_type ) );
+			echo wp_kses_post( $this->uniform_price_hint_html( $effective_price, $effective_price_type ) );
 		} elseif ( $per_option && $is_choice ) {
-			echo wp_kses_post( $this->per_option_field_label_prices_html( $options, $price_type ) );
-		} elseif ( ! $is_choice && $price > 0 ) {
-			echo wp_kses_post( $this->uniform_price_hint_html( $price, $price_type ) );
+			echo wp_kses_post( $this->per_option_field_label_prices_html( $options, $effective_price_type ) );
+		} elseif ( ! $is_choice && $effective_price > 0 ) {
+			echo wp_kses_post( $this->uniform_price_hint_html( $effective_price, $effective_price_type ) );
 		}
 		if ( in_array( $type, [ 'file', 'image_upload' ], true ) || $swatch_allow_custom ) {
 			echo '<button type="button" class="pab-file-upload-clear">' . esc_html__( 'Remove', 'pab' ) . '</button>';

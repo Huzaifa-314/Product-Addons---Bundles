@@ -31,6 +31,17 @@ class PAB_Data {
 	}
 
 	/**
+	 * Popup: whether nested sub-fields use their own prices or one shared popup price.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return string per_field|uniform
+	 */
+	public static function sanitize_nested_price_mode( $value ): string {
+		$v = sanitize_key( (string) $value );
+		return 'uniform' === $v ? 'uniform' : 'per_field';
+	}
+
+	/**
 	 * @return array<int,array<string,mixed>>
 	 */
 	public static function decode_json_meta( int $product_id, string $meta_key ): array {

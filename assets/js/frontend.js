@@ -195,6 +195,52 @@
         return mapped;
     }
 
+    function nestedPopupUniformShouldCharge(data, subField) {
+        if (!data || !subField) {
+            return false;
+        }
+        if (subField.type === 'checkbox') {
+            return !!data.value && String(data.value) !== '0';
+        }
+        if (!String(data.value || '').trim()) {
+            return false;
+        }
+        if (subField.type === 'image_swatch' && subField.swatch_allow_custom_upload) {
+            var customVal = (pabData && pabData.swatchCustomValue) ? String(pabData.swatchCustomValue) : '';
+            var val = String(data.value || '');
+            if (customVal && val === customVal) {
+                var $wrap = $('.pab-field-wrap--nested').filter(function () {
+                    return String($(this).data('pab-popup-top-index')) === String(data.topIndex)
+                        && String($(this).data('index')) === String(data.nestIndex);
+                });
+                var $radio = $wrap.find('.pab-swatch-radio:checked');
+                if (shouldZeroImageSwatchCustomOptionPrice($wrap, $radio)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    function addonFieldSurcharge(field, data) {
+        var fieldPrice = 0;
+        var priceType  = field.price_type || 'flat';
+        var choiceTypes = ['select', 'radio', 'image_swatch', 'text_swatch'];
+        if (choiceTypes.indexOf(field.type) !== -1) {
+            var cmode = field.choice_price_mode || 'per_option';
+            if (cmode === 'uniform') {
+                fieldPrice = parseFloat(field.price) || 0;
+                priceType  = field.price_type || 'flat';
+            } else {
+                fieldPrice = data.optionPrice || 0;
+                priceType  = 'flat';
+            }
+        } else {
+            fieldPrice = parseFloat(field.price) || 0;
+        }
+        return { fieldPrice: fieldPrice, priceType: priceType };
+    }
+
     // -------------------------------------------------------------------------
     // Calculate extra price from addon fields
     // -------------------------------------------------------------------------
@@ -204,35 +250,37 @@
             if (!data || !data.value) {
                 return;
             }
-            var field;
+            var fieldPrice = 0;
+            var priceType  = 'flat';
+
             if (data.popupNested) {
                 var pf = addonFields[data.topIndex];
                 if (!pf || pf.type !== 'popup' || !pf.nested_fields) {
                     return;
                 }
-                field = pf.nested_fields[data.nestIndex];
-            } else {
-                field = addonFields[index];
-            }
-            if (!field) {
-                return;
-            }
-
-            var fieldPrice = 0;
-            var priceType  = field.price_type || 'flat';
-            var choiceTypes = ['select', 'radio', 'image_swatch', 'text_swatch'];
-
-            if (choiceTypes.indexOf(field.type) !== -1) {
-                var cmode = field.choice_price_mode || 'per_option';
-                if (cmode === 'uniform') {
-                    fieldPrice = parseFloat(field.price) || 0;
-                    priceType  = field.price_type || 'flat';
+                var subField = pf.nested_fields[data.nestIndex];
+                if (!subField) {
+                    return;
+                }
+                if (pf.nested_price_mode === 'uniform') {
+                    if (!nestedPopupUniformShouldCharge(data, subField)) {
+                        return;
+                    }
+                    fieldPrice = parseFloat(pf.price) || 0;
+                    priceType  = pf.price_type || 'flat';
                 } else {
-                    fieldPrice = data.optionPrice || 0;
-                    priceType  = 'flat';
+                    var np = addonFieldSurcharge(subField, data);
+                    fieldPrice = np.fieldPrice;
+                    priceType = np.priceType;
                 }
             } else {
-                fieldPrice = parseFloat(field.price) || 0;
+                var field = addonFields[index];
+                if (!field) {
+                    return;
+                }
+                var top = addonFieldSurcharge(field, data);
+                fieldPrice = top.fieldPrice;
+                priceType = top.priceType;
             }
 
             switch (priceType) {

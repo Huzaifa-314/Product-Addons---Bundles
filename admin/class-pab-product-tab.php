@@ -176,6 +176,7 @@ class PAB_Product_Tab {
 		$popup_side_image    = isset( $field['popup_side_image'] ) ? (string) $field['popup_side_image'] : '';
 		$placeholder         = isset( $field['placeholder'] ) ? (string) $field['placeholder'] : '';
 		$nested_fields       = isset( $field['nested_fields'] ) && is_array( $field['nested_fields'] ) ? $field['nested_fields'] : [];
+		$nested_price_mode   = PAB_Data::sanitize_nested_price_mode( $field['nested_price_mode'] ?? 'per_field' );
 
 		if ( null === $nested_parent_index ) {
 			$field_name_root = 'pab_addon_fields[' . $index . ']';
@@ -216,6 +217,7 @@ class PAB_Product_Tab {
 		$toggle_icon_cls  = $is_template ? 'dashicons dashicons-arrow-down-alt2' : 'dashicons dashicons-arrow-right-alt2';
 		$row_classes      = 'pab-settings-card pab-addon-row' . ( null !== $nested_parent_index ? ' pab-addon-row--nested' : '' );
 		$standard_sections_hidden = $is_popup && null === $nested_parent_index;
+		$disable_popup_main_pricing = ( $is_popup && null === $nested_parent_index );
 		?>
 		<div class="<?php echo esc_attr( $row_classes ); ?>" data-index="<?php echo esc_attr( $index ); ?>" data-field-id="<?php echo esc_attr( $field_id ); ?>" data-pab-name-root="<?php echo esc_attr( $field_name_root ); ?>">
 			<div class="pab-settings-card__header pab-addon-row__header">
@@ -322,8 +324,44 @@ class PAB_Product_Tab {
 									<p class="description"><?php esc_html_e( 'Optional image shown on the left side of the popup (cover). Leave empty for a single-column popup.', 'pab' ); ?></p>
 								</td>
 							</tr>
+							<tr class="pab-field-settings-table__row">
+								<th scope="row" class="pab-field-settings-table__label"><?php esc_html_e( 'Sub-field pricing', 'pab' ); ?></th>
+								<td class="pab-field-settings-table__control">
+									<select name="<?php echo esc_attr( $field_name_root ); ?>[nested_price_mode]" class="pab-popup-nested-price-mode"<?php disabled( $is_template, true ); ?>>
+										<option value="per_field" <?php selected( $nested_price_mode, 'per_field' ); ?>><?php esc_html_e( 'Individual price per sub-field', 'pab' ); ?></option>
+										<option value="uniform" <?php selected( $nested_price_mode, 'uniform' ); ?>><?php esc_html_e( 'Same price for all sub-fields', 'pab' ); ?></option>
+									</select>
+									<p class="description"><?php esc_html_e( 'Use each sub-field’s own pricing, or one shared price and price type for every sub-field that the customer fills in.', 'pab' ); ?></p>
+								</td>
+							</tr>
 						</tbody>
 					</table>
+					<div class="pab-popup-uniform-subfield-pricing <?php echo ( 'uniform' === $nested_price_mode ) ? '' : 'pab-is-hidden'; ?>">
+						<h4 class="pab-field-settings-heading"><?php esc_html_e( 'Shared sub-field price', 'pab' ); ?></h4>
+						<table class="pab-field-settings-table widefat" role="presentation">
+							<tbody>
+								<tr class="pab-field-settings-table__row">
+									<th scope="row" class="pab-field-settings-table__label"><?php esc_html_e( 'Price type', 'pab' ); ?></th>
+									<td class="pab-field-settings-table__control">
+										<select name="<?php echo esc_attr( $field_name_root ); ?>[price_type]" class="pab-popup-uniform-price-type"<?php disabled( $is_template || 'uniform' !== $nested_price_mode, true ); ?>>
+											<?php foreach ( $price_types as $val => $lbl ) : ?>
+												<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $price_type, $val ); ?>><?php echo esc_html( $lbl ); ?></option>
+											<?php endforeach; ?>
+										</select>
+									</td>
+								</tr>
+								<tr class="pab-field-settings-table__row">
+									<th scope="row" class="pab-field-settings-table__label"><?php esc_html_e( 'Price', 'pab' ); ?></th>
+									<td class="pab-field-settings-table__control">
+										<input type="number" step="0.01" min="0" class="short wc_input_price pab-popup-uniform-price-input"
+											name="<?php echo esc_attr( $field_name_root ); ?>[price]"
+											value="<?php echo esc_attr( $price ); ?>"<?php disabled( $is_template || 'uniform' !== $nested_price_mode, true ); ?> />
+										<p class="description"><?php esc_html_e( 'Applied once per sub-field that has a value (e.g. each filled line adds this amount).', 'pab' ); ?></p>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
 					<div class="pab-popup-nested-builder">
 						<h4 class="pab-field-settings-heading"><?php esc_html_e( 'Add-ons inside popup', 'pab' ); ?></h4>
 						<p class="pab-popup-nested-toolbar">
@@ -378,7 +416,7 @@ class PAB_Product_Tab {
 							<tr class="pab-field-settings-table__row">
 								<th scope="row" class="pab-field-settings-table__label"><?php esc_html_e( 'Price type', 'pab' ); ?></th>
 								<td class="pab-field-settings-table__control">
-									<select name="<?php echo esc_attr( $field_name_root ); ?>[price_type]"<?php disabled( $is_template, true ); ?>>
+									<select name="<?php echo esc_attr( $field_name_root ); ?>[price_type]"<?php disabled( $is_template || $disable_popup_main_pricing, true ); ?>>
 										<?php foreach ( $price_types as $val => $lbl ) : ?>
 											<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $price_type, $val ); ?>><?php echo esc_html( $lbl ); ?></option>
 										<?php endforeach; ?>
@@ -390,7 +428,7 @@ class PAB_Product_Tab {
 								<td class="pab-field-settings-table__control">
 									<input type="number" step="0.01" min="0" class="short wc_input_price"
 										name="<?php echo esc_attr( $field_name_root ); ?>[price]"
-										value="<?php echo esc_attr( $price ); ?>"<?php disabled( $is_template, true ); ?> />
+										value="<?php echo esc_attr( $price ); ?>"<?php disabled( $is_template || $disable_popup_main_pricing, true ); ?> />
 								</td>
 							</tr>
 						</tbody>

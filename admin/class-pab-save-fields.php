@@ -78,6 +78,15 @@ class PAB_Save_Fields {
 
 			$popup_side_image = esc_url_raw( trim( (string) ( $field['popup_side_image'] ?? '' ) ) );
 
+			$nested_price_mode = PAB_Data::sanitize_nested_price_mode( $field['nested_price_mode'] ?? 'per_field' );
+			$popup_price_type  = sanitize_text_field( $field['price_type'] ?? 'flat' );
+			$popup_price_type  = in_array( $popup_price_type, $allowed_price_types, true ) ? $popup_price_type : 'flat';
+			$popup_price       = (float) ( $field['price'] ?? 0 );
+			if ( 'per_field' === $nested_price_mode ) {
+				$popup_price      = 0.0;
+				$popup_price_type = 'flat';
+			}
+
 			return [
 				'id'                  => $this->sanitize_or_generate_id( $field['id'] ?? '', 'field' ),
 				'type'                => 'popup',
@@ -88,9 +97,10 @@ class PAB_Save_Fields {
 				'popup_description'   => wp_kses_post( (string) ( $field['popup_description'] ?? '' ) ),
 				'popup_side_image'    => $popup_side_image,
 				'nested_fields'       => $nested_clean,
+				'nested_price_mode'   => $nested_price_mode,
 				'options'             => [],
-				'price'               => 0.0,
-				'price_type'          => 'flat',
+				'price'               => $popup_price,
+				'price_type'          => $popup_price_type,
 				'choice_price_mode'   => 'per_option',
 			];
 		}
