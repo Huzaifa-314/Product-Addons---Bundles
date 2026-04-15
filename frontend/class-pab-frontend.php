@@ -114,6 +114,7 @@ class PAB_Frontend {
 		wp_localize_script( 'pab-frontend', 'pabData', [
 			'ajaxUrl'          => admin_url( 'admin-ajax.php' ),
 			'nonce'            => wp_create_nonce( 'pab_frontend_nonce' ),
+			'productId'        => (int) $product_id,
 			'swatchCustomValue' => PAB_Data::SWATCH_CUSTOM_POST_VALUE,
 			'basePrice'        => $base_price,
 			'currency'         => get_woocommerce_currency_symbol(),

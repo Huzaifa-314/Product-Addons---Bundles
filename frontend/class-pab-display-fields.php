@@ -11,6 +11,20 @@ class PAB_Display_Fields {
 		return [ 'select', 'radio', 'image_swatch', 'text_swatch' ];
 	}
 
+	/**
+	 * Form POST value for a choice: label when set, otherwise stable option id (image-only swatches need unique values).
+	 *
+	 * @param array<string,mixed> $opt
+	 */
+	private function choice_option_input_value( array $opt ): string {
+		$label = isset( $opt['label'] ) ? trim( (string) $opt['label'] ) : '';
+		if ( $label !== '' ) {
+			return (string) ( $opt['label'] ?? '' );
+		}
+		$oid = isset( $opt['id'] ) ? sanitize_key( (string) $opt['id'] ) : '';
+		return $oid;
+	}
+
 	public function __construct( $product_id, $fields ) {
 		$this->product_id = $product_id;
 		$this->fields     = $fields;
@@ -441,7 +455,8 @@ class PAB_Display_Fields {
 					$opt_price = isset( $opt['price'] ) ? (float) $opt['price'] : 0;
 					$data_price = $uniform_price ? 0 : $opt_price;
 					$price_text = ( $per_option && $opt_price > 0 ) ? ' (+' . wc_format_decimal( $opt_price, wc_get_price_decimals() ) . ')' : '';
-					echo '<option value="' . esc_attr( $opt_label ) . '" data-option-price="' . esc_attr( $data_price ) . '">' . esc_html( $opt_label . $price_text ) . '</option>';
+					$opt_submit = $this->choice_option_input_value( $opt );
+					echo '<option value="' . esc_attr( $opt_submit ) . '" data-option-price="' . esc_attr( $data_price ) . '">' . esc_html( $opt_label . $price_text ) . '</option>';
 				}
 				echo '</select>';
 				break;
@@ -451,8 +466,9 @@ class PAB_Display_Fields {
 					$opt_label = $opt['label'] ?? '';
 					$opt_price = isset( $opt['price'] ) ? (float) $opt['price'] : 0;
 					$data_price = $uniform_price ? 0 : $opt_price;
+					$opt_submit = $this->choice_option_input_value( $opt );
 					echo '<label class="pab-radio-label">';
-					echo '<input type="radio" name="' . esc_attr( $iname ) . '" value="' . esc_attr( $opt_label ) . '" class="pab-field-radio" data-option-price="' . esc_attr( $data_price ) . '" ' . $req_attr . ' />';
+					echo '<input type="radio" name="' . esc_attr( $iname ) . '" value="' . esc_attr( $opt_submit ) . '" class="pab-field-radio" data-option-price="' . esc_attr( $data_price ) . '" ' . $req_attr . ' />';
 					echo esc_html( $opt_label );
 					if ( $per_option && $opt_price > 0 ) {
 						echo ' <span class="pab-opt-price">(+' . wc_price( $opt_price ) . ')</span>';
@@ -500,8 +516,9 @@ class PAB_Display_Fields {
 					$price_label = ( $per_option && $opt_price > 0 ) ? ' (+' . wc_format_decimal( $opt_price, wc_get_price_decimals() ) . ')' : '';
 					$label_trim    = trim( (string) $opt_label );
 					$img_alt       = $label_trim !== '' ? $label_trim : '';
+					$opt_submit    = $this->choice_option_input_value( $opt );
 					echo '<label class="pab-swatch-item" title="' . esc_attr( $opt_label . $price_label ) . '">';
-					echo '<input type="radio" name="' . esc_attr( $iname ) . '" value="' . esc_attr( $opt_label ) . '" class="pab-swatch-radio" data-option-price="' . esc_attr( $data_price ) . '" ' . $req_attr . ' />';
+					echo '<input type="radio" name="' . esc_attr( $iname ) . '" value="' . esc_attr( $opt_submit ) . '" class="pab-swatch-radio" data-option-price="' . esc_attr( $data_price ) . '" ' . $req_attr . ' />';
 					if ( $opt_image ) {
 						echo '<img src="' . esc_url( $opt_image ) . '" alt="' . esc_attr( $img_alt ) . '" class="pab-swatch-img" />';
 					}
@@ -534,8 +551,9 @@ class PAB_Display_Fields {
 					$opt_label  = $opt['label'] ?? '';
 					$opt_price  = isset( $opt['price'] ) ? (float) $opt['price'] : 0;
 					$data_price = $uniform_price ? 0 : $opt_price;
+					$opt_submit = $this->choice_option_input_value( $opt );
 					echo '<label class="pab-text-swatch-item">';
-					echo '<input type="radio" name="' . esc_attr( $iname ) . '" value="' . esc_attr( $opt_label ) . '" class="pab-swatch-radio" data-option-price="' . esc_attr( $data_price ) . '" ' . $req_attr . ' />';
+					echo '<input type="radio" name="' . esc_attr( $iname ) . '" value="' . esc_attr( $opt_submit ) . '" class="pab-swatch-radio" data-option-price="' . esc_attr( $data_price ) . '" ' . $req_attr . ' />';
 					echo '<span class="pab-text-swatch-btn">' . esc_html( $opt_label );
 					if ( $per_option && $opt_price > 0 ) {
 						echo ' <small>(+' . wc_price( $opt_price ) . ')</small>';

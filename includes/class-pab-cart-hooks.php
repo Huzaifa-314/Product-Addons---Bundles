@@ -11,6 +11,67 @@ class PAB_Cart_Hooks {
 	}
 
 	/**
+	 * Match a posted choice to an option: by stable option id first, then by label (legacy / visible labels).
+	 *
+	 * @param array<string,mixed> $field Field config.
+	 * @param string              $posted Raw POST value (already unslashed; may be label or opt id).
+	 * @return array{opt:array<string,mixed>,index:int}|null
+	 */
+	private function resolve_pab_choice_option( array $field, string $posted ): ?array {
+		$options = $field['options'] ?? [];
+		if ( ! is_array( $options ) || $options === [] ) {
+			return null;
+		}
+		$key = sanitize_key( $posted );
+		if ( $key !== '' ) {
+			foreach ( $options as $idx => $opt ) {
+				if ( ! is_array( $opt ) ) {
+					continue;
+				}
+				$oid = isset( $opt['id'] ) ? sanitize_key( (string) $opt['id'] ) : '';
+				if ( $oid !== '' && $oid === $key ) {
+					return [ 'opt' => $opt, 'index' => (int) $idx ];
+				}
+			}
+		}
+		foreach ( $options as $idx => $opt ) {
+			if ( ! is_array( $opt ) ) {
+				continue;
+			}
+			if ( (string) ( $opt['label'] ?? '' ) === $posted ) {
+				return [ 'opt' => $opt, 'index' => (int) $idx ];
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Human-readable cart line for a choice option (image-only swatches often have empty labels).
+	 *
+	 * @param array<string,mixed> $field
+	 * @param array<string,mixed> $opt
+	 */
+	private function choice_option_display_label( array $field, array $opt, int $index ): string {
+		$lbl = trim( (string) ( $opt['label'] ?? '' ) );
+		if ( $lbl !== '' ) {
+			return $lbl;
+		}
+		if ( 'image_swatch' === ( $field['type'] ?? '' ) && ! empty( $opt['image'] ) ) {
+			$path = (string) $opt['image'];
+			$path_only = wp_parse_url( $path, PHP_URL_PATH );
+			$base      = $path_only ? basename( $path_only ) : basename( $path );
+			if ( $base !== '' && $base !== '.' && $base !== '..' ) {
+				return $base;
+			}
+		}
+		return sprintf(
+			/* translators: %d: 1-based option index */
+			__( 'Choice %d', 'pab' ),
+			$index + 1
+		);
+	}
+
+	/**
 	 * Monetary amount this add-on adds for one unit of the logic (matches before_calculate_totals).
 	 *
 	 * @param array<string,mixed> $addon      Cart addon row.
@@ -56,13 +117,8 @@ class PAB_Cart_Hooks {
 					'price_type' => 'flat',
 				];
 			}
-			$price = 0.0;
-			foreach ( $field['options'] ?? [] as $opt ) {
-				if ( ( $opt['label'] ?? '' ) === $clean_value ) {
-					$price = (float) ( $opt['price'] ?? 0 );
-					break;
-				}
-			}
+			$resolved = $this->resolve_pab_choice_option( $field, $clean_value );
+			$price    = $resolved ? (float) ( $resolved['opt']['price'] ?? 0 ) : 0.0;
 			return [
 				'price'      => $price,
 				'price_type' => 'flat',
@@ -433,11 +489,18 @@ class PAB_Cart_Hooks {
 					}
 					$display_value = $lbl;
 				} elseif ( in_array( $field['type'], [ 'select', 'radio', 'image_swatch', 'text_swatch' ], true ) ) {
-					foreach ( $field['options'] ?? [] as $opt ) {
-						if ( ( $opt['label'] ?? '' ) === $posted ) {
-							$price = (float) ( $opt['price'] ?? 0 );
-							break;
-						}
+					$choice_mode = $field['choice_price_mode'] ?? 'per_option';
+					$resolved    = $this->resolve_pab_choice_option( $field, $posted );
+					if ( 'uniform' === $choice_mode ) {
+						// Match storefront + JS: one field-level price for every choice (ignore stale per-option amounts in data).
+						$price      = (float) ( $field['price'] ?? 0 );
+						$price_type = $field['price_type'] ?? 'flat';
+					} elseif ( $resolved ) {
+						$price      = (float) ( $resolved['opt']['price'] ?? 0 );
+						$price_type = 'flat';
+					}
+					if ( $resolved ) {
+						$display_value = $this->choice_option_display_label( $field, $resolved['opt'], $resolved['index'] );
 					}
 				} elseif ( $field['type'] === 'checkbox' ) {
 					$price = $posted ? (float) ( $field['price'] ?? 0 ) : 0;
@@ -571,11 +634,17 @@ class PAB_Cart_Hooks {
 						}
 						$display_value = $lbl;
 					} elseif ( in_array( $field['type'], [ 'select', 'radio', 'image_swatch', 'text_swatch' ], true ) ) {
-						foreach ( $field['options'] ?? [] as $opt ) {
-							if ( ( $opt['label'] ?? '' ) === $posted ) {
-								$price = (float) ( $opt['price'] ?? 0 );
-								break;
-							}
+						$choice_mode = $field['choice_price_mode'] ?? 'per_option';
+						$resolved    = $this->resolve_pab_choice_option( $field, $posted );
+						if ( 'uniform' === $choice_mode ) {
+							$price      = (float) ( $field['price'] ?? 0 );
+							$price_type = $field['price_type'] ?? 'flat';
+						} elseif ( $resolved ) {
+							$price      = (float) ( $resolved['opt']['price'] ?? 0 );
+							$price_type = 'flat';
+						}
+						if ( $resolved ) {
+							$display_value = $this->choice_option_display_label( $field, $resolved['opt'], $resolved['index'] );
 						}
 					} elseif ( $field['type'] === 'checkbox' ) {
 						$price = $posted ? (float) ( $field['price'] ?? 0 ) : 0;
@@ -872,13 +941,21 @@ class PAB_Cart_Hooks {
 				if ( $label === '' ) {
 					$label = __( 'Add-on', 'pab' );
 				}
-				$meta_val = isset( $addon['value'] ) ? (string) $addon['value'] : '';
-				if ( 'image_swatch' === ( $addon['type'] ?? '' ) && ! empty( $addon['file_url'] ) ) {
-					$meta_val .= ( $meta_val !== '' ? ' — ' : '' ) . (string) $addon['file_url'];
+				$type      = $addon['type'] ?? '';
+				$raw_value = isset( $addon['value'] ) ? (string) $addon['value'] : '';
+
+				if ( in_array( $type, [ 'file', 'image_upload' ], true ) && $raw_value !== '' ) {
+					$display_value = '<a href="' . esc_url( $raw_value ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'View File', 'pab' ) . '</a>';
+				} elseif ( 'image_swatch' === $type && ! empty( $addon['file_url'] ) ) {
+					$display_value = esc_html( $raw_value );
+					$display_value .= ' — <a href="' . esc_url( $addon['file_url'] ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'View image', 'pab' ) . '</a>';
+				} else {
+					$display_value = esc_html( $raw_value );
 				}
+
 				$item->add_meta_data(
 					esc_html( $label ),
-					esc_html( $meta_val ),
+					wp_kses_post( $display_value ),
 					true
 				);
 			}

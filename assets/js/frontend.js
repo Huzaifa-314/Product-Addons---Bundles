@@ -906,26 +906,81 @@
     });
 
     // -------------------------------------------------------------------------
-    // Popup overlays (div, not <dialog>) — Woodmart / stacked layouts break native showModal().
+    // Popup overlays — keep dialogs inside form.cart so pab_popup / pab_popup_file submit.
+    // HTML5 form= on popup fields helps AJAX quick-view / odd DOM layouts.
     // -------------------------------------------------------------------------
-    var pabMountPopupsTimer = null;
+    var pabInjectTimer = null;
 
-    function pabMountPopupOverlays() {
-        document.querySelectorAll('.pab-popup-dialog').forEach(function (dlg) {
-            if (dlg.parentNode && dlg.parentNode !== document.body) {
-                document.body.appendChild(dlg);
+    /**
+     * Point popup field controls at the cart form so POST and FormData(form) always include them.
+     */
+    function pabEnsurePopupFieldsCartForm() {
+        var $form = $('form.cart').filter(function () {
+            return $(this).find('#pab-product-addons, .pab-product-addons').length > 0;
+        }).first();
+        if (!$form.length) {
+            $form = $('form.cart').first();
+        }
+        if (!$form.length) {
+            return;
+        }
+        var fid = $form.attr('id');
+        if (!fid || fid === '') {
+            var pid = (pabData && pabData.productId != null) ? String(pabData.productId) : '0';
+            fid = 'pab-wc-cart-' + pid;
+            $form.attr('id', fid);
+        }
+        document.querySelectorAll('.pab-popup-dialog input, .pab-popup-dialog select, .pab-popup-dialog textarea').forEach(function (el) {
+            var n = el.getAttribute('name');
+            if (!n || n.indexOf('pab_popup') !== 0) {
+                return;
             }
+            el.setAttribute('form', fid);
         });
     }
 
-    function pabScheduleMountPopupOverlays() {
-        clearTimeout(pabMountPopupsTimer);
-        pabMountPopupsTimer = window.setTimeout(pabMountPopupOverlays, 40);
+    function pabScheduleInitInjectedAddons() {
+        clearTimeout(pabInjectTimer);
+        pabInjectTimer = window.setTimeout(function () {
+            pabInitInjectedAddons();
+        }, 40);
+    }
+
+    function pabInitInjectedAddons() {
+        $('.pab-child-swatch-group').each(function () {
+            syncExclusiveSwatchGroup($(this));
+        });
+        $('.pab-child-wrap').each(function () {
+            var $wrap = $(this);
+            var $qty = $wrap.find('.pab-child-qty').first();
+            if ($qty.attr('type') !== 'hidden') {
+                var c = clampChildQty($wrap, $qty.val());
+                $qty.val(c);
+            }
+            syncChildWrapVisual($wrap);
+        });
+        $('.pab-child-variation-select').each(function () {
+            refreshChildVariationPrice($(this));
+        });
+        $('.pab-field-wrap.pab-field-type-image_swatch').each(function () {
+            cacheImageSwatchDefaultLabel($(this));
+        });
+        $('.pab-file-upload').each(function () {
+            syncPabFileUpload($(this));
+        });
+        $('.pab-field-wrap.pab-field-type-image_swatch[data-pab-swatch-customer-upload="1"]').each(function () {
+            syncImageSwatchCustomerUpload($(this));
+        });
+        $('.pab-field-wrap.pab-field-type-image_swatch').each(function () {
+            syncImageSwatchLabelPrice($(this));
+        });
+        pabEnsurePopupFieldsCartForm();
+        updatePrice();
     }
 
     /* Woodmart quick view / AJAX product injects markup after load */
     $(document).on('ajaxComplete.pabPopups', function () {
-        pabScheduleMountPopupOverlays();
+        pabScheduleInitInjectedAddons();
     });
 
     function pabClosePopupOverlay(dlg) {
@@ -955,9 +1010,6 @@
         var el = id ? document.getElementById(id) : null;
         if (!el || !el.classList.contains('pab-popup-dialog')) {
             return;
-        }
-        if (el.parentNode !== document.body) {
-            document.body.appendChild(el);
         }
         el.removeAttribute('hidden');
         document.documentElement.classList.add('pab-popup-modal-open');
@@ -1010,35 +1062,7 @@
     // Init on DOM ready
     // -------------------------------------------------------------------------
     $(function () {
-        pabMountPopupOverlays();
-        $('.pab-child-swatch-group').each(function () {
-            syncExclusiveSwatchGroup($(this));
-        });
-        $('.pab-child-wrap').each(function () {
-            var $wrap = $(this);
-            var $qty = $wrap.find('.pab-child-qty').first();
-            if ($qty.attr('type') !== 'hidden') {
-                var c = clampChildQty($wrap, $qty.val());
-                $qty.val(c);
-            }
-            syncChildWrapVisual($wrap);
-        });
-        $('.pab-child-variation-select').each(function () {
-            refreshChildVariationPrice($(this));
-        });
-        $('.pab-field-wrap.pab-field-type-image_swatch').each(function () {
-            cacheImageSwatchDefaultLabel($(this));
-        });
-        $('.pab-file-upload').each(function () {
-            syncPabFileUpload($(this));
-        });
-        $('.pab-field-wrap.pab-field-type-image_swatch[data-pab-swatch-customer-upload="1"]').each(function () {
-            syncImageSwatchCustomerUpload($(this));
-        });
-        $('.pab-field-wrap.pab-field-type-image_swatch').each(function () {
-            syncImageSwatchLabelPrice($(this));
-        });
-        updatePrice();
+        pabInitInjectedAddons();
     });
 
 })(jQuery);
