@@ -31,22 +31,36 @@ class PAB_Display_Fields {
 	}
 
 	/**
-	 * Shown next to the field label when choice fields use uniform pricing.
+	 * Translatable “(Free)” for zero-priced add-ons (product page labels).
 	 */
-	private function uniform_price_hint_html( float $price, string $price_type ): string {
+	private function label_free_html(): string {
+		return $this->uniform_price_hint_html( 0.0, 'flat' );
+	}
+
+	/**
+	 * Parenthetical price text only (no wrapper span) — used inside image-swatch label span to avoid nested `.pab-opt-price`.
+	 */
+	private function uniform_price_inner_html( float $price, string $price_type ): string {
 		if ( $price <= 0 ) {
-			return '';
+			return '(' . esc_html__( 'Free', 'pab' ) . ')';
 		}
 		if ( 'flat' === $price_type ) {
-			return ' <span class="pab-opt-price">(+' . wc_price( $price ) . ')</span>';
+			return '(+' . wc_price( $price ) . ')';
 		}
 		if ( 'percentage' === $price_type ) {
-			return ' <span class="pab-opt-price">(+' . esc_html( wc_format_decimal( $price, wc_get_price_decimals() ) ) . '%)</span>';
+			return '(+' . esc_html( wc_format_decimal( $price, wc_get_price_decimals() ) ) . '%)';
 		}
 		if ( 'per_qty' === $price_type ) {
-			return ' <span class="pab-opt-price">(+' . wc_price( $price ) . ' ' . esc_html__( '× quantity', 'pab' ) . ')</span>';
+			return '(+' . wc_price( $price ) . ' ' . esc_html__( '× quantity', 'pab' ) . ')';
 		}
-		return '';
+		return '(' . esc_html__( 'Free', 'pab' ) . ')';
+	}
+
+	/**
+	 * Shown next to the field label when choice fields use uniform pricing (or simple field price).
+	 */
+	private function uniform_price_hint_html( float $price, string $price_type ): string {
+		return ' <span class="pab-opt-price">' . $this->uniform_price_inner_html( $price, $price_type ) . '</span>';
 	}
 
 	/**
@@ -102,7 +116,7 @@ class PAB_Display_Fields {
 		$nested = isset( $field['nested_fields'] ) && is_array( $field['nested_fields'] ) ? $field['nested_fields'] : [];
 		$max    = $this->popup_nested_per_field_max_flat_sum( $nested );
 		if ( $max <= 0 ) {
-			return '';
+			return $this->label_free_html();
 		}
 		return ' <span class="pab-opt-price">(+' . wp_kses_post( wc_price( $max ) ) . ')</span>';
 	}
@@ -172,37 +186,56 @@ class PAB_Display_Fields {
 
 	/**
 	 * Label hint when each choice has its own price (min–max or single amount).
-	 * Preset options only — not image swatch “custom upload” (that price shows on its tile only).
 	 *
 	 * @param array<int,array<string,mixed>> $options
+	 * @param float                          $swatch_custom_flat Image swatch “upload your own” flat price (per-option mode only).
 	 */
-	private function per_option_field_label_prices_html( array $options, string $price_type ): string {
+	private function per_option_field_label_prices_inner_html( array $options, string $price_type, float $swatch_custom_flat = 0.0 ): string {
 		$amounts = [];
 		foreach ( $options as $opt ) {
-			$p = isset( $opt['price'] ) ? (float) $opt['price'] : 0;
-			if ( $p > 0 ) {
-				$amounts[] = $p;
-			}
+			$amounts[] = isset( $opt['price'] ) ? (float) $opt['price'] : 0;
+		}
+		if ( $swatch_custom_flat > 0 ) {
+			$amounts[] = $swatch_custom_flat;
 		}
 		if ( empty( $amounts ) ) {
-			return '';
+			return '(' . esc_html__( 'Free', 'pab' ) . ')';
 		}
 		$min = min( $amounts );
 		$max = max( $amounts );
+		if ( $max <= 0 ) {
+			return '(' . esc_html__( 'Free', 'pab' ) . ')';
+		}
 		if ( $min === $max ) {
-			return $this->uniform_price_hint_html( $min, $price_type );
+			return $this->uniform_price_inner_html( $min, $price_type );
 		}
 		$dec = wc_get_price_decimals();
 		if ( 'flat' === $price_type ) {
-			return ' <span class="pab-opt-price">(+' . wp_kses_post( wc_price( $min ) ) . ' – +' . wp_kses_post( wc_price( $max ) ) . ')</span>';
+			if ( $min <= 0 ) {
+				return '(' . esc_html__( 'Free', 'pab' ) . ' – +' . wp_kses_post( wc_price( $max ) ) . ')';
+			}
+			return '(+' . wp_kses_post( wc_price( $min ) ) . ' – +' . wp_kses_post( wc_price( $max ) ) . ')';
 		}
 		if ( 'percentage' === $price_type ) {
-			return ' <span class="pab-opt-price">(+' . esc_html( wc_format_decimal( $min, $dec ) ) . '% – +' . esc_html( wc_format_decimal( $max, $dec ) ) . '%)</span>';
+			if ( $min <= 0 ) {
+				return '(' . esc_html__( 'Free', 'pab' ) . ' – +' . esc_html( wc_format_decimal( $max, $dec ) ) . '%)';
+			}
+			return '(+' . esc_html( wc_format_decimal( $min, $dec ) ) . '% – +' . esc_html( wc_format_decimal( $max, $dec ) ) . '%)';
 		}
 		if ( 'per_qty' === $price_type ) {
-			return ' <span class="pab-opt-price">(+' . wp_kses_post( wc_price( $min ) ) . ' – +' . wp_kses_post( wc_price( $max ) ) . ' ' . esc_html__( '× quantity', 'pab' ) . ')</span>';
+			if ( $min <= 0 ) {
+				return '(' . esc_html__( 'Free', 'pab' ) . ' – +' . wp_kses_post( wc_price( $max ) ) . ' ' . esc_html__( '× quantity', 'pab' ) . ')';
+			}
+			return '(+' . wp_kses_post( wc_price( $min ) ) . ' – +' . wp_kses_post( wc_price( $max ) ) . ' ' . esc_html__( '× quantity', 'pab' ) . ')';
 		}
-		return '';
+		return '(' . esc_html__( 'Free', 'pab' ) . ')';
+	}
+
+	/**
+	 * @param array<int,array<string,mixed>> $options
+	 */
+	private function per_option_field_label_prices_html( array $options, string $price_type, float $swatch_custom_flat = 0.0 ): string {
+		return ' <span class="pab-opt-price">' . $this->per_option_field_label_prices_inner_html( $options, $price_type, $swatch_custom_flat ) . '</span>';
 	}
 
 	private function render_field( $index, $field ) {
@@ -326,10 +359,10 @@ class PAB_Display_Fields {
 		$uniform_price = $is_choice && 'uniform' === $choice_mode_effective;
 		$per_option    = $is_choice && 'per_option' === $choice_mode_effective;
 
-		// Popup “same price for all sub-fields”: no per–sub-field price hints; live total uses parent config only.
-		$data_price_attr = ( $is_nested && $popup_parent_uniform ) ? '0' : (string) $price;
-		$data_pt_attr    = ( $is_nested && $popup_parent_uniform ) ? 'flat' : $price_type;
-		$data_cmode_attr = ( $is_nested && $popup_parent_uniform ) ? '' : ( $is_choice ? $choice_mode_effective : '' );
+		// Popup uniform: sub-fields charge the parent’s price/type in the cart; expose that on the wrap for JS (e.g. image swatch label).
+		$data_price_attr = ( $is_nested && $popup_parent_uniform ) ? (string) $popup_parent_price : (string) $price;
+		$data_pt_attr    = ( $is_nested && $popup_parent_uniform ) ? $popup_parent_price_type : $price_type;
+		$data_cmode_attr = ( $is_nested && $popup_parent_uniform && $is_choice ) ? 'uniform' : ( $is_choice ? $choice_mode_effective : '' );
 
 		$swatch_allow_custom = ( 'image_swatch' === $type && ! empty( $field['swatch_allow_custom_upload'] ) );
 
@@ -361,14 +394,22 @@ class PAB_Display_Fields {
 		}
 		echo '</span>';
 		if ( 'image_swatch' === $type ) {
-			echo '<span class="pab-opt-price pab-image-swatch-label-price" hidden></span>';
+			$swatch_custom_flat = $swatch_allow_custom ? (float) ( $field['swatch_custom_price'] ?? 0 ) : 0.0;
+			if ( $uniform_price ) {
+				$swatch_inner = $this->uniform_price_inner_html( $effective_price, $effective_price_type );
+			} elseif ( $per_option ) {
+				$swatch_inner = $this->per_option_field_label_prices_inner_html( $options, $effective_price_type, $swatch_custom_flat );
+			} else {
+				$swatch_inner = '(' . esc_html__( 'Free', 'pab' ) . ')';
+			}
+			echo '<span class="pab-opt-price pab-image-swatch-label-price">' . wp_kses_post( $swatch_inner ) . '</span>';
 		} elseif ( $is_nested && $popup_parent_uniform ) {
-			// Sub-field prices are not shown; only the popup’s shared price applies.
+			echo wp_kses_post( $this->uniform_price_hint_html( $popup_parent_price, $popup_parent_price_type ) );
 		} elseif ( $uniform_price ) {
 			echo wp_kses_post( $this->uniform_price_hint_html( $effective_price, $effective_price_type ) );
 		} elseif ( $per_option && $is_choice ) {
-			echo wp_kses_post( $this->per_option_field_label_prices_html( $options, $effective_price_type ) );
-		} elseif ( ! $is_choice && $effective_price > 0 ) {
+			echo wp_kses_post( $this->per_option_field_label_prices_html( $options, $effective_price_type, 0.0 ) );
+		} elseif ( ! $is_choice ) {
 			echo wp_kses_post( $this->uniform_price_hint_html( $effective_price, $effective_price_type ) );
 		}
 		if ( in_array( $type, [ 'file', 'image_upload' ], true ) || $swatch_allow_custom ) {

@@ -36,10 +36,15 @@
         return '<span class="woocommerce-Price-amount amount"><bdi>' + inner + '</bdi></span>';
     }
 
+    function freeLabelParenHtml() {
+        var w = (pabData.i18n && pabData.i18n.freeLabel) ? String(pabData.i18n.freeLabel) : 'Free';
+        return '(' + w + ')';
+    }
+
     function imageSwatchUniformLabelHtml(price, priceType) {
         var p = parseFloat(price) || 0;
         if (p <= 0) {
-            return '';
+            return freeLabelParenHtml();
         }
         if (priceType === 'percentage') {
             var decimals = parseInt(priceFormat.decimals, 10) || 2;
@@ -62,7 +67,6 @@
         }
         var $checked = $field.find('.pab-image-swatch-wrap .pab-swatch-radio:checked');
         if (!$checked.length) {
-            $priceSpan.empty().prop('hidden', true);
             return;
         }
         var cmode = String($field.attr('data-choice-price-mode') || '');
@@ -72,16 +76,11 @@
             var fp = parseFloat($field.attr('data-price')) || 0;
             var pt = String($field.attr('data-price-type') || 'flat');
             var html = imageSwatchUniformLabelHtml(fp, pt);
-            if (!html) {
-                $priceSpan.empty().prop('hidden', true);
-            } else {
-                $priceSpan.html(html).prop('hidden', false);
-            }
+            $priceSpan.html(html).prop('hidden', false);
             return;
         }
 
         if (cmode !== 'per_option') {
-            $priceSpan.empty().prop('hidden', true);
             return;
         }
 
@@ -92,13 +91,13 @@
         if (isCustom) {
             var $fileWrap = $field.find('.pab-swatch-custom-upload .pab-file-upload--image').first();
             if (!$fileWrap.length || !$fileWrap.hasClass('pab-has-file')) {
-                $priceSpan.empty().prop('hidden', true);
+                $priceSpan.html(freeLabelParenHtml()).prop('hidden', false);
                 return;
             }
         }
 
         if (optPrice <= 0) {
-            $priceSpan.empty().prop('hidden', true);
+            $priceSpan.html(freeLabelParenHtml()).prop('hidden', false);
             return;
         }
         $priceSpan.html('(+' + formatPriceWcAmountHtml(optPrice) + ')').prop('hidden', false);

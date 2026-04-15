@@ -123,7 +123,8 @@ class PAB_Frontend {
 			'i18n'             => [
 				'chooseExtra'     => __( 'Please choose an extra.', 'pab' ),
 				'chooseVariation' => __( 'Please choose options for the selected extra.', 'pab' ),
-				'perQtySuffix'      => __( '× quantity', 'pab' ),
+				'perQtySuffix'    => __( '× quantity', 'pab' ),
+				'freeLabel'       => __( 'Free', 'pab' ),
 			],
 			'settings'         => [
 				'enableLiveTotal' => ( $pab_settings['enable_live_total'] ?? 'yes' ) === 'yes',
