@@ -125,39 +125,61 @@
     function collectAddonValues() {
         var values = {};
         $('.pab-field-wrap').each(function () {
-            var index = $(this).data('index');
-            var fieldId = String($(this).data('field-id') || '');
-            var $input;
             var $fieldWrap = $(this);
+            if ($fieldWrap.hasClass('pab-field-type-popup')) {
+                return;
+            }
+            var fieldId = String($fieldWrap.data('field-id') || '');
+            var $input;
+            var index = $fieldWrap.data('index');
+            var isNested = $fieldWrap.hasClass('pab-field-wrap--nested');
+            var topIdx = $fieldWrap.data('pab-popup-top-index');
+            var storeKey = index;
+            if (isNested && topIdx !== undefined && topIdx !== '') {
+                storeKey = 'popup:' + String(topIdx) + ':' + String(index);
+            }
 
-            $input = $(this).find('input[type="radio"]:checked, input[type="checkbox"]:checked');
+            $input = $fieldWrap.find('input[type="radio"]:checked, input[type="checkbox"]:checked');
             if ($input.length) {
                 var optPrice = parseFloat($input.attr('data-option-price')) || 0;
                 if (shouldZeroImageSwatchCustomOptionPrice($fieldWrap, $input)) {
                     optPrice = 0;
                 }
-                values[index] = {
+                values[storeKey] = {
                     fieldId: fieldId,
                     value: $input.val() || ($input.is(':checked') ? '1' : ''),
                     optionPrice: optPrice,
+                    popupNested: isNested,
+                    topIndex: isNested ? parseInt(topIdx, 10) : undefined,
+                    nestIndex: isNested ? parseInt(index, 10) : undefined,
                 };
                 return;
             }
 
-            $input = $(this).find('select.pab-field-input');
+            $input = $fieldWrap.find('select.pab-field-input');
             if ($input.length) {
                 var $selectedOpt = $input.find('option:selected');
-                values[index] = {
+                values[storeKey] = {
                     fieldId: fieldId,
                     value: $input.val() || '',
                     optionPrice: parseFloat($selectedOpt.data('option-price')) || 0,
+                    popupNested: isNested,
+                    topIndex: isNested ? parseInt(topIdx, 10) : undefined,
+                    nestIndex: isNested ? parseInt(index, 10) : undefined,
                 };
                 return;
             }
 
-            $input = $(this).find('input.pab-field-input, textarea.pab-field-input');
+            $input = $fieldWrap.find('input.pab-field-input, textarea.pab-field-input');
             if ($input.length) {
-                values[index] = { fieldId: fieldId, value: $input.val() || '', optionPrice: 0 };
+                values[storeKey] = {
+                    fieldId: fieldId,
+                    value: $input.val() || '',
+                    optionPrice: 0,
+                    popupNested: isNested,
+                    topIndex: isNested ? parseInt(topIdx, 10) : undefined,
+                    nestIndex: isNested ? parseInt(index, 10) : undefined,
+                };
             }
         });
         return values;
@@ -166,7 +188,7 @@
     function valuesByFieldId(addonValues) {
         var mapped = {};
         $.each(addonValues, function (_index, data) {
-            if (data && data.fieldId) {
+            if (data && data.fieldId && !data.popupNested) {
                 mapped[data.fieldId] = data;
             }
         });
@@ -179,9 +201,22 @@
     function calcAddonPrice(addonValues, baseP, qty) {
         var extra = 0;
         $.each(addonValues, function (index, data) {
-            if (!data.value) return;
-            var field      = addonFields[index];
-            if (!field) return;
+            if (!data || !data.value) {
+                return;
+            }
+            var field;
+            if (data.popupNested) {
+                var pf = addonFields[data.topIndex];
+                if (!pf || pf.type !== 'popup' || !pf.nested_fields) {
+                    return;
+                }
+                field = pf.nested_fields[data.nestIndex];
+            } else {
+                field = addonFields[index];
+            }
+            if (!field) {
+                return;
+            }
 
             var fieldPrice = 0;
             var priceType  = field.price_type || 'flat';
@@ -372,8 +407,8 @@
     function evaluateRules(addonValues) {
         var priceAdjust = 0;
 
-        // Reset all hidden-by-rules fields first
-        $('.pab-field-wrap').removeClass('pab-rule-hidden').show();
+        // Reset all hidden-by-rules fields first (top-level only; nested fields are not rule targets in v1)
+        $('.pab-field-wrap').not('.pab-field-wrap--nested').removeClass('pab-rule-hidden').show();
 
         var byFieldId = valuesByFieldId(addonValues);
         $.each(rules, function (_ri, rule) {
@@ -770,9 +805,111 @@
     });
 
     // -------------------------------------------------------------------------
+    // Popup overlays (div, not <dialog>) — Woodmart / stacked layouts break native showModal().
+    // -------------------------------------------------------------------------
+    var pabMountPopupsTimer = null;
+
+    function pabMountPopupOverlays() {
+        document.querySelectorAll('.pab-popup-dialog').forEach(function (dlg) {
+            if (dlg.parentNode && dlg.parentNode !== document.body) {
+                document.body.appendChild(dlg);
+            }
+        });
+    }
+
+    function pabScheduleMountPopupOverlays() {
+        clearTimeout(pabMountPopupsTimer);
+        pabMountPopupsTimer = window.setTimeout(pabMountPopupOverlays, 40);
+    }
+
+    /* Woodmart quick view / AJAX product injects markup after load */
+    $(document).on('ajaxComplete.pabPopups', function () {
+        pabScheduleMountPopupOverlays();
+    });
+
+    function pabClosePopupOverlay(dlg) {
+        if (!dlg || !dlg.classList || !dlg.classList.contains('pab-popup-dialog')) {
+            return;
+        }
+        dlg.setAttribute('hidden', '');
+        if (!document.querySelector('.pab-popup-dialog:not([hidden])')) {
+            document.documentElement.classList.remove('pab-popup-modal-open');
+        }
+    }
+
+    function pabFocusPopupTriggerByDialogId(id) {
+        if (!id) {
+            return;
+        }
+        var $btn = $('.pab-popup-open[aria-controls="' + id + '"]');
+        if ($btn.length) {
+            $btn.trigger('focus');
+        }
+    }
+
+    $(document).on('click', '.pab-popup-open', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var id = $(this).attr('aria-controls');
+        var el = id ? document.getElementById(id) : null;
+        if (!el || !el.classList.contains('pab-popup-dialog')) {
+            return;
+        }
+        if (el.parentNode !== document.body) {
+            document.body.appendChild(el);
+        }
+        el.removeAttribute('hidden');
+        document.documentElement.classList.add('pab-popup-modal-open');
+        window.setTimeout(function () {
+            var $focus = $(el).find('input, select, textarea, button').filter(':visible').not('.pab-popup-close').first();
+            if (!$focus.length) {
+                $focus = $(el).find('button:visible').first();
+            }
+            if ($focus.length) {
+                $focus.trigger('focus');
+            }
+        }, 0);
+    });
+
+    $(document).on('click', '.pab-popup-dialog', function (e) {
+        if (e.target !== this) {
+            return;
+        }
+        var dlg = this;
+        pabClosePopupOverlay(dlg);
+        pabFocusPopupTriggerByDialogId(dlg.id);
+    });
+
+    $(document).on('click', '.pab-popup-close, .pab-popup-done', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var dlg = $(this).closest('.pab-popup-dialog')[0];
+        if (dlg) {
+            var did = dlg.id;
+            pabClosePopupOverlay(dlg);
+            pabFocusPopupTriggerByDialogId(did);
+        }
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape' && e.keyCode !== 27) {
+            return;
+        }
+        var open = document.querySelector('.pab-popup-dialog:not([hidden])');
+        if (!open) {
+            return;
+        }
+        e.preventDefault();
+        var oid = open.id;
+        pabClosePopupOverlay(open);
+        pabFocusPopupTriggerByDialogId(oid);
+    });
+
+    // -------------------------------------------------------------------------
     // Init on DOM ready
     // -------------------------------------------------------------------------
     $(function () {
+        pabMountPopupOverlays();
         $('.pab-child-swatch-group').each(function () {
             syncExclusiveSwatchGroup($(this));
         });

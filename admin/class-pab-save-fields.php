@@ -37,69 +37,116 @@ class PAB_Save_Fields {
 		}
 
 		$clean = [];
-		$allowed_types           = [ 'text', 'textarea', 'select', 'checkbox', 'radio', 'number', 'file', 'image_upload', 'image_swatch', 'text_swatch' ];
-		$allowed_price_types     = [ 'flat', 'percentage', 'per_qty' ];
-		$allowed_choice_modes    = [ 'uniform', 'per_option' ];
-		$choice_field_types      = [ 'select', 'radio', 'image_swatch', 'text_swatch' ];
-
 		foreach ( $raw as $field ) {
 			if ( ! is_array( $field ) ) {
 				continue;
 			}
-
-			$type       = sanitize_text_field( $field['type'] ?? 'text' );
-			$type       = in_array( $type, $allowed_types, true ) ? $type : 'text';
-			$price_type = sanitize_text_field( $field['price_type'] ?? 'flat' );
-			$price_type = in_array( $price_type, $allowed_price_types, true ) ? $price_type : 'flat';
-
-			$choice_mode = sanitize_text_field( $field['choice_price_mode'] ?? 'per_option' );
-			if ( ! in_array( $choice_mode, $allowed_choice_modes, true ) ) {
-				$choice_mode = 'per_option';
-			}
-			if ( ! in_array( $type, $choice_field_types, true ) ) {
-				$choice_mode = 'per_option';
-			}
-
-			$item = [
-				'id'                 => $this->sanitize_or_generate_id( $field['id'] ?? '', 'field' ),
-				'type'               => $type,
-				'label'              => sanitize_text_field( $field['label'] ?? '' ),
-				'required'           => ! empty( $field['required'] ),
-				'price'              => (float) ( $field['price'] ?? 0 ),
-				'price_type'         => $price_type,
-				'choice_price_mode'  => $choice_mode,
-				'options'            => [],
-			];
-
-			if ( 'image_swatch' === $type ) {
-				$item['image_swatch_size']          = PAB_Data::sanitize_image_swatch_size( $field['image_swatch_size'] ?? 'medium' );
-				$item['swatch_allow_custom_upload'] = ! empty( $field['swatch_allow_custom_upload'] );
-				$custom_lbl                         = sanitize_text_field( $field['swatch_custom_label'] ?? '' );
-				$item['swatch_custom_label']        = $custom_lbl !== '' ? $custom_lbl : 'Upload your own';
-				$item['swatch_custom_price']        = (float) ( $field['swatch_custom_price'] ?? 0 );
-			}
-
-			if ( ! empty( $field['options'] ) && is_array( $field['options'] ) ) {
-				foreach ( $field['options'] as $opt ) {
-					if ( ! is_array( $opt ) ) {
-						continue;
-					}
-					$opt_item = [
-						'id'    => $this->sanitize_or_generate_id( $opt['id'] ?? '', 'opt' ),
-						'label' => sanitize_text_field( $opt['label'] ?? '' ),
-						'price' => (float) ( $opt['price'] ?? 0 ),
-					];
-					if ( isset( $opt['image'] ) ) {
-						$opt_item['image'] = esc_url_raw( $opt['image'] );
-					}
-					$item['options'][] = $opt_item;
-				}
-			}
-
-			$clean[] = $item;
+			$clean[] = $this->sanitize_one_addon_field( $field, true );
 		}
 
 		return $clean;
+	}
+
+	/**
+	 * @param array<string,mixed> $field
+	 * @return array<string,mixed>
+	 */
+	private function sanitize_one_addon_field( array $field, bool $allow_popup_type ) {
+		$base_allowed_types     = [ 'text', 'textarea', 'select', 'checkbox', 'radio', 'number', 'file', 'image_upload', 'image_swatch', 'text_swatch' ];
+		$allowed_types          = $allow_popup_type ? array_merge( $base_allowed_types, [ 'popup' ] ) : $base_allowed_types;
+		$allowed_price_types    = [ 'flat', 'percentage', 'per_qty' ];
+		$allowed_choice_modes   = [ 'uniform', 'per_option' ];
+		$choice_field_types     = [ 'select', 'radio', 'image_swatch', 'text_swatch' ];
+
+		$type = sanitize_text_field( $field['type'] ?? 'text' );
+		$type = in_array( $type, $allowed_types, true ) ? $type : 'text';
+
+		if ( 'popup' === $type ) {
+			$btn = sanitize_text_field( $field['popup_button_label'] ?? '' );
+			if ( $btn === '' ) {
+				$btn = __( 'Customize', 'pab' );
+			}
+			$nested_clean = [];
+			if ( ! empty( $field['nested_fields'] ) && is_array( $field['nested_fields'] ) ) {
+				foreach ( $field['nested_fields'] as $child ) {
+					if ( ! is_array( $child ) ) {
+						continue;
+					}
+					$nested_clean[] = $this->sanitize_one_addon_field( $child, false );
+				}
+			}
+
+			$popup_side_image = esc_url_raw( trim( (string) ( $field['popup_side_image'] ?? '' ) ) );
+
+			return [
+				'id'                  => $this->sanitize_or_generate_id( $field['id'] ?? '', 'field' ),
+				'type'                => 'popup',
+				'label'               => sanitize_text_field( $field['label'] ?? '' ),
+				'required'            => ! empty( $field['required'] ),
+				'popup_button_label'  => $btn,
+				'popup_title'         => sanitize_text_field( $field['popup_title'] ?? '' ),
+				'popup_description'   => wp_kses_post( (string) ( $field['popup_description'] ?? '' ) ),
+				'popup_side_image'    => $popup_side_image,
+				'nested_fields'       => $nested_clean,
+				'options'             => [],
+				'price'               => 0.0,
+				'price_type'          => 'flat',
+				'choice_price_mode'   => 'per_option',
+			];
+		}
+
+		$price_type = sanitize_text_field( $field['price_type'] ?? 'flat' );
+		$price_type = in_array( $price_type, $allowed_price_types, true ) ? $price_type : 'flat';
+
+		$choice_mode = sanitize_text_field( $field['choice_price_mode'] ?? 'per_option' );
+		if ( ! in_array( $choice_mode, $allowed_choice_modes, true ) ) {
+			$choice_mode = 'per_option';
+		}
+		if ( ! in_array( $type, $choice_field_types, true ) ) {
+			$choice_mode = 'per_option';
+		}
+
+		$item = [
+			'id'                 => $this->sanitize_or_generate_id( $field['id'] ?? '', 'field' ),
+			'type'               => $type,
+			'label'              => sanitize_text_field( $field['label'] ?? '' ),
+			'required'           => ! empty( $field['required'] ),
+			'price'              => (float) ( $field['price'] ?? 0 ),
+			'price_type'         => $price_type,
+			'choice_price_mode'  => $choice_mode,
+			'options'            => [],
+		];
+
+		if ( in_array( $type, [ 'text', 'textarea', 'number' ], true ) ) {
+			$item['placeholder'] = sanitize_text_field( $field['placeholder'] ?? '' );
+		}
+
+		if ( 'image_swatch' === $type ) {
+			$item['image_swatch_size']          = PAB_Data::sanitize_image_swatch_size( $field['image_swatch_size'] ?? 'medium' );
+			$item['swatch_allow_custom_upload'] = ! empty( $field['swatch_allow_custom_upload'] );
+			$custom_lbl                         = sanitize_text_field( $field['swatch_custom_label'] ?? '' );
+			$item['swatch_custom_label']        = $custom_lbl !== '' ? $custom_lbl : 'Upload your own';
+			$item['swatch_custom_price']        = (float) ( $field['swatch_custom_price'] ?? 0 );
+		}
+
+		if ( ! empty( $field['options'] ) && is_array( $field['options'] ) ) {
+			foreach ( $field['options'] as $opt ) {
+				if ( ! is_array( $opt ) ) {
+					continue;
+				}
+				$opt_item = [
+					'id'    => $this->sanitize_or_generate_id( $opt['id'] ?? '', 'opt' ),
+					'label' => sanitize_text_field( $opt['label'] ?? '' ),
+					'price' => (float) ( $opt['price'] ?? 0 ),
+				];
+				if ( isset( $opt['image'] ) ) {
+					$opt_item['image'] = esc_url_raw( $opt['image'] );
+				}
+				$item['options'][] = $opt_item;
+			}
+		}
+
+		return $item;
 	}
 
 	private function sanitize_child_products( $raw ) {

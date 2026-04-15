@@ -520,7 +520,14 @@ class PAB_Group_Resolver {
 			}
 
 			if ( isset( $lookup[ $field_id ] ) ) {
-				$existing[ $lookup[ $field_id ] ] = $field;
+				$idx  = $lookup[ $field_id ];
+				$prev = $existing[ $idx ];
+				if ( 'popup' === ( $prev['type'] ?? '' ) && 'popup' === ( $field['type'] ?? '' ) ) {
+					$prev_nested = isset( $prev['nested_fields'] ) && is_array( $prev['nested_fields'] ) ? $prev['nested_fields'] : [];
+					$new_nested  = isset( $field['nested_fields'] ) && is_array( $field['nested_fields'] ) ? $field['nested_fields'] : [];
+					$field['nested_fields'] = self::merge_fields_by_id( $prev_nested, $new_nested );
+				}
+				$existing[ $idx ] = $field;
 			} else {
 				$lookup[ $field_id ] = count( $existing );
 				$existing[]          = $field;

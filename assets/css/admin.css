@@ -13,7 +13,8 @@
  * ------------------------------------------------------------------------- */
 
 #pab_addons_data,
-#pab_group_addons {
+#pab_group_addons,
+#pab_group_targeting {
 	--pab-surface: #fff;
 	--pab-surface-muted: #f3f4f6;
 	--pab-border: #c3c4c7;
@@ -49,6 +50,27 @@
 #pab_addons_data .pab-field-builder .pab-is-hidden,
 #pab_group_addons .pab-field-builder .pab-is-hidden {
 	display: none !important;
+}
+
+#pab_addons_data .pab-popup-nested-list,
+#pab_group_addons .pab-popup-nested-list {
+	margin-left: var(--pab-space-3);
+	padding-left: var(--pab-space-3);
+	border-left: 2px solid var(--pab-border-subtle);
+}
+
+#pab_addons_data .pab-addon-row--nested .pab-addon-row__header,
+#pab_group_addons .pab-addon-row--nested .pab-addon-row__header {
+	font-size: 13px;
+}
+
+#pab_addons_data .pab-popup-nested-toolbar,
+#pab_group_addons .pab-popup-nested-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--pab-space-2);
+	margin-bottom: var(--pab-space-3);
 }
 
 #pab_addons_data .pab-field-builder .pab-repeater-list,
@@ -464,6 +486,33 @@
 	display: none;
 }
 
+#pab_addons_data .pab-popup-side-image-tools,
+#pab_group_addons .pab-popup-side-image-tools {
+	display: inline-flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--pab-space-2);
+	min-width: 0;
+	margin-top: var(--pab-space-1);
+}
+
+#pab_addons_data .pab-popup-side-image-preview,
+#pab_group_addons .pab-popup-side-image-preview {
+	display: block;
+	width: 48px;
+	height: 48px;
+	object-fit: cover;
+	border-radius: 4px;
+	border: 1px solid var(--pab-border);
+	flex-shrink: 0;
+	background: var(--pab-surface-muted);
+}
+
+#pab_addons_data .pab-popup-side-image-preview.is-empty,
+#pab_group_addons .pab-popup-side-image-preview.is-empty {
+	display: none;
+}
+
 #pab_addons_data .pab-field-builder .pab-option-col-actions .pab-remove-option,
 #pab_group_addons .pab-field-builder .pab-option-col-actions .pab-remove-option {
 	display: inline-flex;
@@ -541,14 +590,118 @@
 	max-width: 400px;
 }
 
-/* Group products select — replaces inline style */
-#pab_group_targeting .pab-group-products-select {
-	width: 100%;
+/* -------------------------------------------------------------------------
+ * Addon group: Display / Location — field layout & polish
+ * ------------------------------------------------------------------------- */
+
+#pab_group_targeting .inside {
+	margin: 0;
+	padding: var(--pab-space-3) var(--pab-space-4) var(--pab-space-4);
 }
 
-/* Location rules match label — replaces inline style */
+#pab_group_targeting .pab-group-targeting-intro {
+	margin: 0 0 var(--pab-space-4);
+	line-height: 1.55;
+	max-width: 58em;
+}
+
+#pab_group_targeting .pab-group-targeting-priority {
+	margin: 0 0 var(--pab-space-5);
+	max-width: 58em;
+}
+
+#pab_group_targeting .pab-group-targeting-priority > label {
+	display: block;
+	margin-bottom: var(--pab-space-2);
+}
+
+#pab_group_targeting .pab-group-targeting-priority__row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--pab-space-3) var(--pab-space-4);
+}
+
+#pab_group_targeting .pab-group-targeting-priority__row .small-text {
+	margin: 0;
+	flex: 0 0 auto;
+}
+
+#pab_group_targeting .pab-group-targeting-priority__row .description {
+	display: block;
+	margin: 0;
+	flex: 1 1 220px;
+	min-width: min(100%, 16em);
+	line-height: 1.5;
+}
+
+/* Group products select — SelectWoo measures the <select>; constrain wrapper + container to metabox width */
+#pab_group_targeting .pab-group-targeting-products {
+	max-width: 100%;
+	min-width: 0;
+	box-sizing: border-box;
+	margin: 0 0 var(--pab-space-2);
+}
+
+#pab_group_targeting .pab-group-targeting-products > label {
+	display: block;
+	margin-bottom: var(--pab-space-2);
+}
+
+#pab_group_targeting .pab-group-products-select {
+	width: 100% !important;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+#pab_group_targeting .pab-group-targeting-products .select2-container {
+	width: 100% !important;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+#pab_group_targeting .pab-group-targeting-products .select2-selection--multiple {
+	min-height: 36px;
+	border-radius: var(--pab-radius);
+	border-color: var(--pab-border);
+}
+
+/* Location rules match */
+#pab_group_targeting .pab-location-rules-match {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	gap: var(--pab-space-2) var(--pab-space-5);
+	margin-bottom: var(--pab-space-4);
+}
+
 #pab_group_targeting .pab-location-rules-match__label {
-	margin-right: var(--pab-space-3);
+	margin: 0;
+	flex: 0 0 auto;
+	padding-top: 2px;
+	font-weight: 600;
+	color: var(--pab-text);
+}
+
+#pab_group_targeting .pab-location-rules-match__options {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--pab-space-2) var(--pab-space-6);
+}
+
+#pab_group_targeting .pab-location-rules-match__option {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0;
+	font-weight: 400;
+	cursor: pointer;
+}
+
+#pab_group_targeting .pab-location-rules-match__option input[type="radio"] {
+	margin: 0;
+	flex-shrink: 0;
 }
 
 /* Location rule value select — replaces inline style */
@@ -745,25 +898,43 @@
  * ------------------------------------------------------------------------- */
 
 #pab_group_targeting .pab-group-location-rules {
-	margin-top: var(--pab-space-4);
-	padding-top: var(--pab-space-3);
+	margin-top: var(--pab-space-5);
+	padding-top: var(--pab-space-4);
 	border-top: 1px solid var(--pab-border-subtle);
 }
 
-#pab_group_targeting .pab-location-rules-match {
-	margin-bottom: var(--pab-space-3);
+#pab_group_targeting .pab-group-location-rules__heading {
+	margin: 0 0 var(--pab-space-2);
+	font-size: 13px;
+}
+
+#pab_group_targeting .pab-group-location-rules > .description {
+	margin: 0 0 var(--pab-space-4);
+	line-height: 1.55;
+	max-width: 58em;
+}
+
+#pab_group_targeting .pab-group-location-rules__footer {
+	margin: var(--pab-space-4) 0 0;
+}
+
+#pab_group_targeting .pab-group-location-rules-rows {
+	display: flex;
+	flex-direction: column;
+	gap: var(--pab-space-3);
 }
 
 #pab_group_targeting .pab-location-rule-row {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: flex-start;
-	gap: var(--pab-space-2) var(--pab-space-3);
-	margin-bottom: var(--pab-space-3);
-	padding: var(--pab-space-3);
-	background: var(--pab-surface-muted);
-	border: 1px solid var(--pab-border);
-	border-radius: 4px;
+	gap: var(--pab-space-3) var(--pab-space-4);
+	margin: 0;
+	padding: var(--pab-space-4);
+	background: var(--pab-surface);
+	border: 1px solid var(--pab-border-subtle);
+	border-radius: var(--pab-radius);
+	box-shadow: var(--pab-shadow);
 }
 
 #pab_group_targeting .pab-location-rule-col-param {
@@ -772,27 +943,95 @@
 }
 
 #pab_group_targeting .pab-location-rule-col-operator {
-	flex: 0 0 auto;
+	flex: 0 1 160px;
 	min-width: 140px;
 }
 
 #pab_group_targeting .pab-location-rule-col-value {
-	flex: 2 1 220px;
+	flex: 2 1 240px;
 	min-width: 200px;
 }
 
 #pab_group_targeting .pab-location-rule-col-actions {
 	flex: 0 0 auto;
-	align-self: center;
+	align-self: stretch;
+	display: flex;
+	align-items: center;
+	padding-left: var(--pab-space-2);
+	margin-left: auto;
+	border-left: 1px solid var(--pab-border-subtle);
+	min-height: 32px;
 }
 
 #pab_group_targeting .pab-location-rule-row select {
 	max-width: 100%;
+	width: 100%;
+	min-height: 32px;
+	padding: 3px 8px;
+	border-radius: var(--pab-radius);
+	border-color: var(--pab-border);
+	box-sizing: border-box;
+	line-height: 1.5;
+}
+
+#pab_group_targeting .pab-location-rule-row select:focus {
+	border-color: var(--pab-accent);
+	box-shadow: 0 0 0 1px var(--pab-accent);
+	outline: none;
+}
+
+#pab_group_targeting .pab-location-rule-row .select2-container .select2-selection--single {
+	min-height: 32px;
+	border-radius: var(--pab-radius);
+	border-color: var(--pab-border);
+}
+
+#pab_group_targeting .pab-location-rule-row .select2-container .select2-selection__rendered {
+	line-height: 30px;
+	padding-left: 10px;
+}
+
+#pab_group_targeting .pab-location-rule-row .select2-container .select2-selection__arrow {
+	height: 30px;
+}
+
+#pab_group_targeting .pab-location-rule-row .select2-container--focus .select2-selection--single,
+#pab_group_targeting .pab-location-rule-row .select2-container--open .select2-selection--single {
+	border-color: var(--pab-accent);
+	box-shadow: 0 0 0 1px var(--pab-accent);
 }
 
 #pab_group_targeting .pab-location-rule-col-value .select2-container {
 	min-width: 200px;
 	width: 100% !important;
+}
+
+#pab_group_targeting .pab-remove-location-rule {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	margin: 0;
+	padding: 0;
+	border: 1px solid var(--pab-border);
+	border-radius: var(--pab-radius);
+	background: var(--pab-surface-muted);
+	color: var(--pab-muted);
+	font-size: 22px;
+	line-height: 1;
+	text-decoration: none;
+	cursor: pointer;
+	transition: color 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+
+#pab_group_targeting .pab-remove-location-rule:hover,
+#pab_group_targeting .pab-remove-location-rule:focus {
+	color: var(--pab-error);
+	border-color: #dba0a2;
+	background: #fcf0f1;
+	outline: none;
+	box-shadow: 0 0 0 1px rgba(214, 54, 56, 0.25);
 }
 
 /* -------------------------------------------------------------------------

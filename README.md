@@ -12,13 +12,13 @@ The plugin does not load if WooCommerce is inactive; an admin notice is shown in
 
 ## Installation
 
-1. Copy the `Product Addons & Bundles` folder into `wp-content/plugins/`.
-2. Activate **Product Addons & Bundles** in **Plugins**.
+1. Copy the `product-addons-bundles` folder into `wp-content/plugins/`.
+2. Activate the plugin in **Plugins**.
 3. Ensure **WooCommerce** is installed and active.
 
 ## Configuration
 
-- **Global settings:** **WooCommerce → Product Addons & Bundles** — general options, addon groups, assignments (e.g. by product, category, tag, priority), and help.
+- **Global settings:** **WooCommerce → Product Addons & Bundles** (found under the PAB menu item) — general options, addon groups, assignments (e.g. by product, category, tag, priority), and help.
 - **Per product:** edit a product and open the **Add-ons & Composite** tab to apply addon groups and priorities.
 
 Addon groups are managed as their own post type in the admin; assignments control which groups apply to which products or taxonomies.

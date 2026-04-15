@@ -67,10 +67,10 @@ class PAB_Display_Fields {
 	/**
 	 * Styled dropzone + native file input (pricing/cart logic unchanged).
 	 *
-	 * @param string|int $index Field index in form.
-	 * @param string     $extra_wrap_class Optional extra class(es) on the upload root (e.g. swatch variant).
+	 * @param string $file_input_name Full name attribute, e.g. pab_addon_file[0] or pab_popup_file[id][0].
+	 * @param string $extra_wrap_class Optional extra class(es) on the upload root (e.g. swatch variant).
 	 */
-	private function render_file_upload_field( $index, string $type, string $req_attr, string $extra_wrap_class = '' ): void {
+	private function render_file_upload_field( string $file_input_name, string $type, string $req_attr, string $extra_wrap_class = '' ): void {
 		$is_image = ( 'image_upload' === $type );
 		$accept   = $is_image ? ' accept="image/*"' : '';
 		$inp_cls  = 'pab-field-file pab-file-upload-input' . ( $is_image ? ' pab-file-upload-input--image' : '' );
@@ -81,7 +81,7 @@ class PAB_Display_Fields {
 
 		echo '<div class="' . esc_attr( $wrap_cls ) . '">';
 		echo '<div class="pab-file-upload-drop">';
-		echo '<input type="file" name="pab_addon_file[' . esc_attr( (string) $index ) . ']" class="' . esc_attr( $inp_cls ) . '" ' . $req_attr . $accept . ' />';
+		echo '<input type="file" name="' . esc_attr( $file_input_name ) . '" class="' . esc_attr( $inp_cls ) . '" ' . $req_attr . $accept . ' />';
 		echo '<div class="pab-file-upload-panel">';
 		if ( $is_image ) {
 			echo '<div class="pab-file-upload-preview" hidden>';
@@ -148,6 +148,98 @@ class PAB_Display_Fields {
 	}
 
 	private function render_field( $index, $field ) {
+		if ( ! is_array( $field ) ) {
+			return;
+		}
+		$type = $field['type'] ?? 'text';
+		if ( 'popup' === $type ) {
+			$this->render_popup_field( (int) $index, $field );
+			return;
+		}
+		$input_name = 'pab_addon[' . (int) $index . ']';
+		$file_name  = 'pab_addon_file[' . (int) $index . ']';
+		$this->render_field_inner( $field, $input_name, $file_name, (int) $index, false );
+	}
+
+	/**
+	 * @param array<string,mixed> $field
+	 */
+	private function render_popup_field( int $list_index, array $field ): void {
+		$field_id = isset( $field['id'] ) ? sanitize_key( (string) $field['id'] ) : '';
+		if ( '' === $field_id ) {
+			return;
+		}
+		$btn = isset( $field['popup_button_label'] ) ? trim( (string) $field['popup_button_label'] ) : '';
+		$btn   = $btn !== '' ? $btn : __( 'Customize', 'pab' );
+		$title = isset( $field['popup_title'] ) ? trim( (string) $field['popup_title'] ) : '';
+		$desc = isset( $field['popup_description'] ) ? (string) $field['popup_description'] : '';
+		$desc = str_replace( [ "\r\n", "\r" ], "\n", $desc );
+		$desc = str_ireplace( 'rnrn', "\n\n", $desc );
+		$popup_side_raw = isset( $field['popup_side_image'] ) ? trim( (string) $field['popup_side_image'] ) : '';
+		$popup_side_url = $popup_side_raw !== '' ? esc_url( $popup_side_raw ) : '';
+		$has_popup_side = ( $popup_side_url !== '' );
+		$label = isset( $field['label'] ) ? trim( (string) $field['label'] ) : '';
+		if ( $label === '' ) {
+			$label = $title !== '' ? $title : $btn;
+		}
+		$required = ! empty( $field['required'] );
+		$btn_id   = 'pab-popup-trigger-' . $field_id;
+
+		$dialog_id = 'pab-popup-' . $field_id;
+		$nested    = isset( $field['nested_fields'] ) && is_array( $field['nested_fields'] ) ? $field['nested_fields'] : [];
+
+		echo '<div class="pab-field-wrap pab-field-type-popup" data-index="' . esc_attr( (string) $list_index ) . '" data-field-id="' . esc_attr( $field_id ) . '" data-price="0" data-price-type="flat" data-choice-price-mode="">';
+		echo '<label class="pab-field-label" for="' . esc_attr( $btn_id ) . '">';
+		echo '<span class="pab-field-label__main">' . esc_html( $label );
+		if ( $required ) {
+			echo '<span class="required pab-required-star" aria-hidden="true">*</span>';
+		}
+		echo '</span></label>';
+		echo '<div class="pab-popup-trigger">';
+		echo '<button type="button" id="' . esc_attr( $btn_id ) . '" class="button pab-popup-open" aria-haspopup="dialog" aria-controls="' . esc_attr( $dialog_id ) . '">' . esc_html( $btn ) . '</button>';
+		echo '</div>';
+
+		// Div overlay (not <dialog>): Woodmart / stacked layouts often break native showModal().
+		echo '<div id="' . esc_attr( $dialog_id ) . '" class="pab-popup-dialog" role="dialog" aria-modal="true" aria-labelledby="' . esc_attr( $dialog_id ) . '-title" hidden>';
+		echo '<div class="pab-popup-dialog__panel' . ( $has_popup_side ? ' pab-popup-dialog__panel--split' : '' ) . '">';
+		if ( $has_popup_side ) {
+			echo '<div class="pab-popup-dialog__media" style="' . esc_attr( 'background-image:url(' . $popup_side_url . ')' ) . '" aria-hidden="true"></div>';
+		}
+		echo '<div class="pab-popup-dialog__main">';
+		$has_visible_title = ( $title !== '' );
+		echo '<div class="pab-popup-header' . ( ! $has_visible_title ? ' pab-popup-header--close-end' : '' ) . '">';
+		if ( $has_visible_title ) {
+			echo '<h3 id="' . esc_attr( $dialog_id ) . '-title" class="pab-popup-title">' . esc_html( $title ) . '</h3>';
+		} else {
+			echo '<h3 id="' . esc_attr( $dialog_id ) . '-title" class="pab-popup-title screen-reader-text">' . esc_html( $btn ) . '</h3>';
+		}
+		echo '<button type="button" class="pab-popup-close" aria-label="' . esc_attr__( 'Close', 'pab' ) . '"></button>';
+		echo '</div>';
+		if ( $desc !== '' ) {
+			echo '<div class="pab-popup-description">' . wp_kses_post( wpautop( $desc, true ) ) . '</div>';
+		}
+		echo '<div class="pab-popup-fields">';
+		foreach ( $nested as $ni => $child ) {
+			if ( ! is_array( $child ) ) {
+				continue;
+			}
+			$input_name = 'pab_popup[' . $field_id . '][' . (int) $ni . ']';
+			$file_name  = 'pab_popup_file[' . $field_id . '][' . (int) $ni . ']';
+			$this->render_field_inner( $child, $input_name, $file_name, (int) $ni, true, $list_index, $field_id );
+		}
+		echo '</div>';
+		// `.button.alt` for Woo; Woodmart primary look via CSS variables on `.pab-popup-done` (avoid `.single_add_to_cart_button` — cart ::before icon).
+		echo '<p class="pab-popup-actions"><button type="button" class="button alt pab-popup-done">' . esc_html__( 'Done', 'pab' ) . '</button></p>';
+		echo '</div>';
+		echo '</div>';
+		echo '</div>';
+		echo '</div>';
+	}
+
+	/**
+	 * @param array<string,mixed> $field
+	 */
+	private function render_field_inner( array $field, string $input_name, string $file_input_name, int $data_index, bool $is_nested, int $popup_top_index = -1, string $popup_container_id = '' ): void {
 		$field_id   = isset( $field['id'] ) ? sanitize_key( (string) $field['id'] ) : '';
 		$type       = $field['type'] ?? 'text';
 		$label      = $field['label'] ?? '';
@@ -157,6 +249,8 @@ class PAB_Display_Fields {
 		$choice_mode = $field['choice_price_mode'] ?? 'per_option';
 		$options    = $field['options'] ?? [];
 		$req_attr   = $required ? 'required' : '';
+		$placeholder = isset( $field['placeholder'] ) ? trim( (string) $field['placeholder'] ) : '';
+		$ph_attr    = $placeholder !== '' ? ' placeholder="' . esc_attr( $placeholder ) . '"' : '';
 
 		$is_choice     = in_array( $type, self::choice_types(), true );
 		$uniform_price = $is_choice && 'uniform' === $choice_mode;
@@ -164,14 +258,23 @@ class PAB_Display_Fields {
 
 		$swatch_allow_custom = ( 'image_swatch' === $type && ! empty( $field['swatch_allow_custom_upload'] ) );
 
-		/* Per-option custom-upload price: shown after the field label when that swatch is selected (not in the upload dropzone). */
 		$swatch_size_class = '';
 		if ( 'image_swatch' === $type ) {
 			$sz = PAB_Data::sanitize_image_swatch_size( $field['image_swatch_size'] ?? 'medium' );
 			$swatch_size_class = ' pab-swatch-size--' . esc_attr( $sz );
 		}
 
-		echo '<div class="pab-field-wrap pab-field-type-' . esc_attr( $type ) . $swatch_size_class . '" data-index="' . esc_attr( $index ) . '" data-field-id="' . esc_attr( $field_id ) . '" data-price="' . esc_attr( $price ) . '" data-price-type="' . esc_attr( $price_type ) . '" data-choice-price-mode="' . esc_attr( $is_choice ? $choice_mode : '' ) . '"' . ( $swatch_allow_custom ? ' data-pab-swatch-customer-upload="1"' : '' ) . '>';
+		$wrap_class = 'pab-field-wrap pab-field-type-' . esc_attr( $type ) . $swatch_size_class;
+		if ( $is_nested ) {
+			$wrap_class .= ' pab-field-wrap--nested';
+		}
+
+		$ctx_attr = '';
+		if ( $is_nested && $popup_top_index >= 0 && $popup_container_id !== '' ) {
+			$ctx_attr = ' data-pab-popup-top-index="' . esc_attr( (string) $popup_top_index ) . '" data-pab-popup-container-id="' . esc_attr( $popup_container_id ) . '"';
+		}
+
+		echo '<div class="' . esc_attr( $wrap_class ) . '" data-index="' . esc_attr( (string) $data_index ) . '" data-field-id="' . esc_attr( $field_id ) . '" data-price="' . esc_attr( $price ) . '" data-price-type="' . esc_attr( $price_type ) . '" data-choice-price-mode="' . esc_attr( $is_choice ? $choice_mode : '' ) . '"' . ( $swatch_allow_custom ? ' data-pab-swatch-customer-upload="1"' : '' ) . $ctx_attr . '>';
 
 		echo '<label class="pab-field-label"><span class="pab-field-label__main">';
 		echo esc_html( $label );
@@ -180,7 +283,6 @@ class PAB_Display_Fields {
 		}
 		echo '</span>';
 		if ( 'image_swatch' === $type ) {
-			/* Filled by JS: selected option + upload state (no static range / duplicate hints). */
 			echo '<span class="pab-opt-price pab-image-swatch-label-price" hidden></span>';
 		} elseif ( $uniform_price ) {
 			echo wp_kses_post( $this->uniform_price_hint_html( $price, $price_type ) );
@@ -194,21 +296,22 @@ class PAB_Display_Fields {
 		}
 		echo '</label>';
 
+		$iname = $input_name;
 		switch ( $type ) {
 			case 'text':
-				echo '<input type="text" name="pab_addon[' . esc_attr( $index ) . ']" class="pab-field-input input-text" ' . $req_attr . ' />';
+				echo '<input type="text" name="' . esc_attr( $iname ) . '" class="pab-field-input input-text" ' . $req_attr . $ph_attr . ' />';
 				break;
 
 			case 'textarea':
-				echo '<textarea name="pab_addon[' . esc_attr( $index ) . ']" class="pab-field-input input-text" ' . $req_attr . '></textarea>';
+				echo '<textarea name="' . esc_attr( $iname ) . '" class="pab-field-input input-text" ' . $req_attr . $ph_attr . '></textarea>';
 				break;
 
 			case 'number':
-				echo '<input type="number" min="0" name="pab_addon[' . esc_attr( $index ) . ']" class="pab-field-input input-text" ' . $req_attr . ' />';
+				echo '<input type="number" min="0" name="' . esc_attr( $iname ) . '" class="pab-field-input input-text" ' . $req_attr . $ph_attr . ' />';
 				break;
 
 			case 'select':
-				echo '<select name="pab_addon[' . esc_attr( $index ) . ']" class="pab-field-input" ' . $req_attr . '>';
+				echo '<select name="' . esc_attr( $iname ) . '" class="pab-field-input" ' . $req_attr . '>';
 				echo '<option value="">' . esc_html__( '— Select —', 'pab' ) . '</option>';
 				foreach ( $options as $opt ) {
 					$opt_label = $opt['label'] ?? '';
@@ -226,7 +329,7 @@ class PAB_Display_Fields {
 					$opt_price = isset( $opt['price'] ) ? (float) $opt['price'] : 0;
 					$data_price = $uniform_price ? 0 : $opt_price;
 					echo '<label class="pab-radio-label">';
-					echo '<input type="radio" name="pab_addon[' . esc_attr( $index ) . ']" value="' . esc_attr( $opt_label ) . '" class="pab-field-radio" data-option-price="' . esc_attr( $data_price ) . '" ' . $req_attr . ' />';
+					echo '<input type="radio" name="' . esc_attr( $iname ) . '" value="' . esc_attr( $opt_label ) . '" class="pab-field-radio" data-option-price="' . esc_attr( $data_price ) . '" ' . $req_attr . ' />';
 					echo esc_html( $opt_label );
 					if ( $per_option && $opt_price > 0 ) {
 						echo ' <span class="pab-opt-price">(+' . wc_price( $opt_price ) . ')</span>';
@@ -237,16 +340,16 @@ class PAB_Display_Fields {
 
 			case 'checkbox':
 				echo '<label class="pab-checkbox-label">';
-				echo '<input type="checkbox" name="pab_addon[' . esc_attr( $index ) . ']" value="1" class="pab-field-checkbox" />';
+				echo '<input type="checkbox" name="' . esc_attr( $iname ) . '" value="1" class="pab-field-checkbox" />';
 				echo '</label>';
 				break;
 
 			case 'file':
-				$this->render_file_upload_field( $index, 'file', $req_attr );
+				$this->render_file_upload_field( $file_input_name, 'file', $req_attr );
 				break;
 
 			case 'image_upload':
-				$this->render_file_upload_field( $index, 'image_upload', $req_attr );
+				$this->render_file_upload_field( $file_input_name, 'image_upload', $req_attr );
 				break;
 
 			case 'image_swatch':
@@ -275,7 +378,7 @@ class PAB_Display_Fields {
 					$label_trim    = trim( (string) $opt_label );
 					$img_alt       = $label_trim !== '' ? $label_trim : '';
 					echo '<label class="pab-swatch-item" title="' . esc_attr( $opt_label . $price_label ) . '">';
-					echo '<input type="radio" name="pab_addon[' . esc_attr( $index ) . ']" value="' . esc_attr( $opt_label ) . '" class="pab-swatch-radio" data-option-price="' . esc_attr( $data_price ) . '" ' . $req_attr . ' />';
+					echo '<input type="radio" name="' . esc_attr( $iname ) . '" value="' . esc_attr( $opt_label ) . '" class="pab-swatch-radio" data-option-price="' . esc_attr( $data_price ) . '" ' . $req_attr . ' />';
 					if ( $opt_image ) {
 						echo '<img src="' . esc_url( $opt_image ) . '" alt="' . esc_attr( $img_alt ) . '" class="pab-swatch-img" />';
 					}
@@ -286,9 +389,8 @@ class PAB_Display_Fields {
 				}
 				if ( $swatch_allow_custom ) {
 					echo '<label class="pab-swatch-item pab-swatch-item--custom" title="' . esc_attr( $custom_label . $custom_price_lbl ) . '">';
-					echo '<input type="radio" name="pab_addon[' . esc_attr( $index ) . ']" value="' . esc_attr( PAB_Data::SWATCH_CUSTOM_POST_VALUE ) . '" class="pab-swatch-radio" data-option-price="' . esc_attr( $custom_opt_price ) . '" data-pab-custom-upload="1" ' . $req_attr . ' />';
+					echo '<input type="radio" name="' . esc_attr( $iname ) . '" value="' . esc_attr( PAB_Data::SWATCH_CUSTOM_POST_VALUE ) . '" class="pab-swatch-radio" data-option-price="' . esc_attr( $custom_opt_price ) . '" data-pab-custom-upload="1" ' . $req_attr . ' />';
 					echo '<span class="pab-swatch-custom-cell">' . esc_html( $custom_label ) . '</span>';
-					/* Invisible rail only when at least one preset shows a caption row (keeps custom tile height aligned). */
 					if ( $swatch_any_choice_label ) {
 						echo '<span class="pab-swatch-label pab-swatch-label--custom-rail" aria-hidden="true">&nbsp;</span>';
 					}
@@ -298,7 +400,7 @@ class PAB_Display_Fields {
 				if ( $swatch_allow_custom ) {
 					echo '<div class="pab-swatch-custom-upload pab-is-hidden">';
 					echo '<p class="pab-swatch-custom-upload__hint">' . esc_html__( 'Upload your image for this option.', 'pab' ) . '</p>';
-					$this->render_file_upload_field( $index, 'image_upload', '', 'pab-file-upload--swatch-addon' );
+					$this->render_file_upload_field( $file_input_name, 'image_upload', '', 'pab-file-upload--swatch-addon' );
 					echo '</div>';
 				}
 				break;
@@ -310,7 +412,7 @@ class PAB_Display_Fields {
 					$opt_price  = isset( $opt['price'] ) ? (float) $opt['price'] : 0;
 					$data_price = $uniform_price ? 0 : $opt_price;
 					echo '<label class="pab-text-swatch-item">';
-					echo '<input type="radio" name="pab_addon[' . esc_attr( $index ) . ']" value="' . esc_attr( $opt_label ) . '" class="pab-swatch-radio" data-option-price="' . esc_attr( $data_price ) . '" ' . $req_attr . ' />';
+					echo '<input type="radio" name="' . esc_attr( $iname ) . '" value="' . esc_attr( $opt_label ) . '" class="pab-swatch-radio" data-option-price="' . esc_attr( $data_price ) . '" ' . $req_attr . ' />';
 					echo '<span class="pab-text-swatch-btn">' . esc_html( $opt_label );
 					if ( $per_option && $opt_price > 0 ) {
 						echo ' <small>(+' . wc_price( $opt_price ) . ')</small>';
@@ -322,6 +424,6 @@ class PAB_Display_Fields {
 				break;
 		}
 
-		echo '</div>'; // .pab-field-wrap
+		echo '</div>';
 	}
 }

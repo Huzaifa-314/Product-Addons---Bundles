@@ -14,9 +14,11 @@
 	var PH_OPT_ID = '__PAB_OPT_ID__';
 	var PH_RULE_ID = '__PAB_RULE_ID__';
 	var PH_LOCATION_RULE = '__PAB_LOCATION_RULE_INDEX__';
+	var PH_FIELD_NAME_ROOT = '__PAB_FIELD_NAME_ROOT__';
 	var OPTION_TYPES = ['select', 'radio', 'image_swatch', 'text_swatch'];
 	var FIELD_NAME_RE = /pab_addon_fields\[\d+]/g;
 	var OPTION_NAME_RE = /pab_addon_fields\[\d+]\[options]\[\d+]/g;
+	var NESTED_OPTION_NAME_RE = /pab_addon_fields\[\d+]\[nested_fields]\[\d+]\[options]\[\d+]/g;
 	var CHILD_NAME_RE = /pab_child_products\[\d+]/g;
 	var RULE_NAME_RE = /pab_conditional_rules\[\d+]/g;
 
@@ -45,7 +47,7 @@
 	}
 
 	function initIndexes() {
-		$('#pab-addon-fields-list .pab-addon-row').each(function (i) {
+		$('#pab-addon-fields-list > .pab-addon-row').each(function (i) {
 			$(this).attr('data-index', i);
 		});
 		$('#pab-child-products-list .pab-child-row').each(function (i) {
@@ -54,7 +56,7 @@
 		$('#pab-rules-list .pab-rule-row').each(function (i) {
 			$(this).attr('data-index', i);
 		});
-		addonIndex = $('#pab-addon-fields-list .pab-addon-row').length;
+		addonIndex = $('#pab-addon-fields-list > .pab-addon-row').length;
 		childIndex = $('#pab-child-products-list .pab-child-row').length;
 		ruleIndex = $('#pab-rules-list .pab-rule-row').length;
 	}
@@ -76,14 +78,34 @@
 		});
 	}
 
-	function reindexAddonRows() {
-		reindexList($('#pab-addon-fields-list'), '.pab-addon-row', function (value, idx) {
-			return value.replace(FIELD_NAME_RE, 'pab_addon_fields[' + idx + ']');
-		});
-		$('#pab-addon-fields-list .pab-addon-row').each(function () {
-			var $row = $(this);
-			var rowIndex = $row.data('index');
-			$row.find('.pab-option-line').each(function (optIndex) {
+	function reindexNestedAddonRows($topRow) {
+		var parentIdx = $topRow.data('index');
+		$topRow.find('.pab-popup-settings .pab-popup-nested-list').first().children('.pab-addon-row--nested').each(function (nidx) {
+			var $nrow = $(this);
+			$nrow.attr('data-index', nidx);
+			var root = 'pab_addon_fields[' + parentIdx + '][nested_fields][' + nidx + ']';
+			$nrow.attr('data-pab-name-root', root);
+			$nrow.children('.pab-settings-card__body').find('input,select,textarea,label').each(function () {
+				var $el = $(this);
+				['name', 'id', 'for'].forEach(function (attr) {
+					var current = $el.attr(attr);
+					if (!current || current.indexOf('pab_addon_fields[') !== 0) {
+						return;
+					}
+					if (current.indexOf('[nested_fields]') === -1) {
+						return;
+					}
+					if (current.indexOf('[options]') !== -1) {
+						return;
+					}
+					var suffix = current.replace(/^pab_addon_fields\[[^\]]+\]\[nested_fields\]\[[^\]]+\]/, '');
+					$el.attr(attr, root + suffix);
+				});
+			});
+			var idSafe = root.replace(/[^\w]+/g, '-');
+			$nrow.find('.pab-field-image-swatch-size').attr('id', 'pab-field-swatch-size-' + idSafe);
+			$nrow.find('label[for^="pab-field-swatch-size"]').attr('for', 'pab-field-swatch-size-' + idSafe);
+			$nrow.find('.pab-option-line').each(function (optIndex) {
 				$(this).find('input,select,textarea,label').each(function () {
 					var $el = $(this);
 					['name', 'id', 'for'].forEach(function (attr) {
@@ -91,12 +113,50 @@
 						if (!current) {
 							return;
 						}
-						$el.attr(attr, current.replace(OPTION_NAME_RE, 'pab_addon_fields[' + rowIndex + '][options][' + optIndex + ']'));
+						$el.attr(attr, current.replace(NESTED_OPTION_NAME_RE, 'pab_addon_fields[' + parentIdx + '][nested_fields][' + nidx + '][options][' + optIndex + ']'));
 					});
 				});
 			});
 		});
-		addonIndex = $('#pab-addon-fields-list .pab-addon-row').length;
+	}
+
+	function reindexAddonRows() {
+		$('#pab-addon-fields-list > .pab-addon-row').each(function (newIdx) {
+			var $row = $(this);
+			$row.attr('data-index', newIdx);
+			$row.attr('data-pab-name-root', 'pab_addon_fields[' + newIdx + ']');
+			$row.children('.pab-settings-card__body').find('input,select,textarea,label').each(function () {
+				var $el = $(this);
+				if ($el.closest('.pab-popup-nested-list').length) {
+					return;
+				}
+				['name', 'id', 'for'].forEach(function (attr) {
+					var current = $el.attr(attr);
+					if (!current || current.indexOf('pab_addon_fields[') !== 0) {
+						return;
+					}
+					if (current.indexOf('[nested_fields]') !== -1) {
+						return;
+					}
+					$el.attr(attr, current.replace(/^pab_addon_fields\[\d+]/, 'pab_addon_fields[' + newIdx + ']'));
+				});
+			});
+			var $topOpts = $row.find('.pab-options-list').not($row.find('.pab-popup-nested-list .pab-options-list'));
+			$topOpts.find('.pab-option-line').each(function (optIndex) {
+				$(this).find('input,select,textarea,label').each(function () {
+					var $el = $(this);
+					['name', 'id', 'for'].forEach(function (attr) {
+						var current = $el.attr(attr);
+						if (!current) {
+							return;
+						}
+						$el.attr(attr, current.replace(OPTION_NAME_RE, 'pab_addon_fields[' + newIdx + '][options][' + optIndex + ']'));
+					});
+				});
+			});
+			reindexNestedAddonRows($row);
+		});
+		addonIndex = $('#pab-addon-fields-list > .pab-addon-row').length;
 		updateEmptyStates();
 	}
 
@@ -169,16 +229,29 @@
 	}
 
 	function toggleOptionsSection($row, type) {
-		var hasOptions = OPTION_TYPES.indexOf(type) !== -1;
+		var isNested = $row.hasClass('pab-addon-row--nested');
+		var isTopPopup = !isNested && type === 'popup';
+		var hasOptions = OPTION_TYPES.indexOf(type) !== -1 && !isTopPopup;
+		var textPlaceholderTypes = ['text', 'textarea', 'number'];
+		$row.find('.pab-field-placeholder-row').toggleClass('pab-is-hidden', textPlaceholderTypes.indexOf(type) === -1);
 		$row.find('.pab-options-section').toggleClass('pab-is-hidden', !hasOptions);
-		$row.find('.pab-choice-pricing-section').toggleClass('pab-is-hidden', !hasOptions);
-		if (hasOptions) {
+		$row.find('.pab-choice-pricing-section').toggleClass('pab-is-hidden', !hasOptions || isTopPopup);
+		if (!isNested) {
+			$row.find('.pab-popup-settings').toggleClass('pab-is-hidden', type !== 'popup');
+		}
+		if (isTopPopup) {
+			$row.find('.pab-field-level-pricing').addClass('pab-is-hidden');
+			$row.find('.pab-image-swatch-display-settings').addClass('pab-is-hidden');
+			$row.find('.pab-swatch-custom-field-settings').addClass('pab-is-hidden');
+		} else if (hasOptions) {
 			ensureOptionsHead($row);
 			toggleChoicePricingMode($row);
 		} else {
 			$row.find('.pab-field-level-pricing').removeClass('pab-is-hidden');
 		}
-		syncSwatchFieldSettings($row);
+		if (!isTopPopup) {
+			syncSwatchFieldSettings($row);
+		}
 	}
 
 	function updateAddonRowChrome($row) {
@@ -206,7 +279,7 @@
 	}
 
 	function initAddonRow($row) {
-		var $type = $row.find('.pab-field-type');
+		var $type = $row.find('.pab-field-type').first();
 		toggleOptionsSection($row, $type.val());
 		updateAddonRowChrome($row);
 		$type.off('change.pabAddon');
@@ -235,11 +308,14 @@
 	function duplicateAddonRow($src) {
 		var $dup = $src.clone();
 		$dup.find('input, select, textarea').prop('disabled', false);
-		var newFieldId = randId('field');
-		$dup.attr('data-field-id', newFieldId);
-		$dup.find('.pab-field-id').val(newFieldId);
-		$dup.find('.pab-option-line').each(function () {
-			$(this).find('.pab-option-id').val(randId('opt'));
+		$dup.add($dup.find('.pab-addon-row')).each(function () {
+			var nid = randId('field');
+			var $r = $(this);
+			$r.attr('data-field-id', nid);
+			$r.find('.pab-field-id').first().val(nid);
+		});
+		$dup.find('.pab-option-id').each(function () {
+			$(this).val(randId('opt'));
 		});
 		$src.after($dup);
 		reindexAddonRows();
@@ -247,14 +323,41 @@
 		syncOptionsLayout($dup);
 		syncSwatchFieldSettings($dup);
 		// Expand new row, collapse others
-		$('#pab-addon-fields-list .pab-addon-row').not($dup).children('.pab-settings-card__body').hide();
-		$('#pab-addon-fields-list .pab-addon-row').not($dup).find('.pab-settings-card__toggle').attr('aria-expanded', 'false').find('.dashicons').removeClass('dashicons-arrow-down-alt2').addClass('dashicons-arrow-right-alt2');
+		$('#pab-addon-fields-list > .pab-addon-row').not($dup).children('.pab-settings-card__body').hide();
+		$('#pab-addon-fields-list > .pab-addon-row').not($dup).find('.pab-settings-card__toggle').attr('aria-expanded', 'false').find('.dashicons').removeClass('dashicons-arrow-down-alt2').addClass('dashicons-arrow-right-alt2');
 		var $body = $dup.children('.pab-settings-card__body');
 		$body.show();
 		$dup.find('.pab-settings-card__toggle').attr('aria-expanded', 'true').find('.dashicons').removeClass('dashicons-arrow-right-alt2').addClass('dashicons-arrow-down-alt2');
 		updateAddonRowChrome($dup);
 		updateRuleFieldDropdowns();
 		$dup.find('.pab-field-label').trigger('focus');
+		markFormDirty();
+	}
+
+	function addNestedAddonRow($top) {
+		var $list = $top.find('.pab-popup-settings .pab-popup-nested-list').first();
+		if (!$list.length) {
+			return;
+		}
+		var nidx = $list.find('> .pab-addon-row--nested').length;
+		var fieldId = randId('field');
+		var sel = String($top.find('.pab-nested-new-field-type').first().val() || 'text');
+		var $row = cloneTemplate('pab-tmpl-nested-addon-row', {
+			'__PAB_PARENT_INDEX__': String($top.data('index')),
+			'__PAB_NESTED_INDEX__': String(nidx),
+			'__PAB_FIELD_ID__': fieldId,
+		});
+		$row.find('input, select, textarea').prop('disabled', false);
+		$row.attr('data-index', nidx);
+		$row.attr('data-field-id', fieldId);
+		$row.find('.pab-field-type').first().val(sel);
+		$list.append($row);
+		initAddonRow($row);
+		reindexNestedAddonRows($top);
+		$list.find('> .pab-addon-row--nested').not($row).children('.pab-settings-card__body').hide();
+		$list.find('> .pab-addon-row--nested').not($row).find('.pab-settings-card__toggle').attr('aria-expanded', 'false').find('.dashicons').removeClass('dashicons-arrow-down-alt2').addClass('dashicons-arrow-right-alt2');
+		$row.children('.pab-settings-card__body').show();
+		$row.find('.pab-settings-card__toggle').attr('aria-expanded', 'true').find('.dashicons').removeClass('dashicons-arrow-right-alt2').addClass('dashicons-arrow-down-alt2');
 		markFormDirty();
 	}
 
@@ -271,8 +374,8 @@
 		$row.find('.pab-field-type').val(selectedType);
 		toggleOptionsSection($row, selectedType);
 		// Collapse all existing rows, expand the new one
-		$('#pab-addon-fields-list .pab-addon-row').children('.pab-settings-card__body').hide();
-		$('#pab-addon-fields-list .pab-addon-row').find('.pab-settings-card__toggle').attr('aria-expanded', 'false').find('.dashicons').removeClass('dashicons-arrow-down-alt2').addClass('dashicons-arrow-right-alt2');
+		$('#pab-addon-fields-list > .pab-addon-row').children('.pab-settings-card__body').hide();
+		$('#pab-addon-fields-list > .pab-addon-row').find('.pab-settings-card__toggle').attr('aria-expanded', 'false').find('.dashicons').removeClass('dashicons-arrow-down-alt2').addClass('dashicons-arrow-right-alt2');
 		$('#pab-addon-fields-list').append($row);
 		var $body = $row.children('.pab-settings-card__body');
 		$body.show();
@@ -286,17 +389,26 @@
 	}
 
 	function addOptionRow($addonRow) {
-		var fieldIndex = $addonRow.data('index');
-		var optIndex = $addonRow.find('.pab-option-line').length;
+		var nameRoot = $addonRow.attr('data-pab-name-root');
+		if (!nameRoot) {
+			nameRoot = 'pab_addon_fields[' + $addonRow.data('index') + ']';
+		}
 		ensureOptionsHead($addonRow);
-		var $opt = cloneTemplate('pab-tmpl-option-row', {
-			'__PAB_FIELD_INDEX__': fieldIndex,
-			'__PAB_OPT_INDEX__': optIndex,
-			'__PAB_OPT_ID__': randId('opt'),
-		});
+		var optIndex = $addonRow.find('.pab-options-list').first().find('.pab-option-line').length;
+		var html = $('#pab-tmpl-option-row').html();
+		html = html.replace(new RegExp(escapeRegExp(PH_FIELD_NAME_ROOT), 'g'), nameRoot);
+		html = html.replace(new RegExp(escapeRegExp('__PAB_OPT_INDEX__'), 'g'), String(optIndex));
+		html = html.replace(new RegExp(escapeRegExp('__PAB_OPT_ID__'), 'g'), randId('opt'));
+		var $opt = $(html);
 		$opt.find('input, select, textarea').prop('disabled', false);
-		$addonRow.find('.pab-options-list').append($opt);
+		$addonRow.find('.pab-options-list').first().append($opt);
 		syncOptionsLayout($addonRow);
+		if ($addonRow.hasClass('pab-addon-row--nested')) {
+			var $top = $addonRow.closest('.pab-popup-nested-list').closest('.pab-addon-row');
+			reindexNestedAddonRows($top);
+		} else {
+			reindexAddonRows();
+		}
 		markFormDirty();
 	}
 
@@ -449,7 +561,7 @@
 
 	function addonFieldModels() {
 		var models = [];
-		$('#pab-addon-fields-list .pab-addon-row').each(function (i) {
+		$('#pab-addon-fields-list > .pab-addon-row').each(function (i) {
 			var $row = $(this);
 			var fieldId = String($row.find('.pab-field-id').val() || '');
 			var label = String($row.find('.pab-field-label').val() || ('Field ' + (i + 1)));
@@ -517,6 +629,16 @@
 	/* ---- Keyboard reorder (move up / down) ---- */
 
 	function moveRowUp($row) {
+		if ($row.hasClass('pab-addon-row--nested')) {
+			var $prev = $row.prev('.pab-addon-row--nested');
+			if ($prev.length) {
+				$prev.before($row);
+				var $top = $row.closest('.pab-popup-nested-list').closest('.pab-addon-row');
+				reindexNestedAddonRows($top);
+				markFormDirty();
+			}
+			return;
+		}
 		var $prev = $row.prev('.pab-addon-row, .pab-child-row, .pab-rule-row');
 		if ($prev.length) {
 			$prev.before($row);
@@ -525,6 +647,16 @@
 	}
 
 	function moveRowDown($row) {
+		if ($row.hasClass('pab-addon-row--nested')) {
+			var $next = $row.next('.pab-addon-row--nested');
+			if ($next.length) {
+				$next.after($row);
+				var $top = $row.closest('.pab-popup-nested-list').closest('.pab-addon-row');
+				reindexNestedAddonRows($top);
+				markFormDirty();
+			}
+			return;
+		}
 		var $next = $row.next('.pab-addon-row, .pab-child-row, .pab-rule-row');
 		if ($next.length) {
 			$next.after($row);
@@ -549,7 +681,7 @@
 			return;
 		}
 		$('#pab-addon-fields-list').sortable({
-			items: '.pab-addon-row',
+			items: '> .pab-addon-row',
 			handle: '.pab-drag-handle',
 			placeholder: 'pab-sortable-placeholder',
 			stop: function () {
@@ -581,7 +713,7 @@
 		// Addon fields
 		var $addonList = $('#pab-addon-fields-list');
 		var $addonEmpty = $addonList.find('.pab-empty-state');
-		if (!$addonList.find('.pab-addon-row').length) {
+		if (!$addonList.find('> .pab-addon-row').length) {
 			if (!$addonEmpty.length) {
 				$addonList.append('<div class="pab-empty-state">' + i18n('emptyAddonFields', 'Add your first add-on field using the toolbar above.') + '</div>');
 			}
@@ -663,12 +795,31 @@
 	$(document).on('click', '.pab-add-addon-field', addAddonRow);
 	$(document).on('click', '.pab-add-child-product', addChildRow);
 	$(document).on('click', '.pab-add-rule', addRuleRow);
+	$(document).on('click', '.pab-add-nested-addon-field', function (e) {
+		e.preventDefault();
+		var $top = $(this).closest('.pab-addon-row');
+		if ($top.hasClass('pab-addon-row--nested')) {
+			return;
+		}
+		addNestedAddonRow($top);
+	});
 
 	$(document).on('click', '.pab-remove-row', function (e) {
 		e.preventDefault();
 		var $card = $(this).closest('.pab-settings-card');
 		var confirmMsg;
 
+		if ($card.hasClass('pab-addon-row--nested')) {
+			var $topRm = $card.closest('.pab-popup-nested-list').closest('.pab-addon-row');
+			if (!window.confirm(i18n('removeAddonConfirm', 'Delete this add-on field? Its options will be lost.'))) {
+				return;
+			}
+			$card.remove();
+			reindexNestedAddonRows($topRm);
+			updateRuleFieldDropdowns();
+			markFormDirty();
+			return;
+		}
 		if ($card.hasClass('pab-addon-row')) {
 			confirmMsg = i18n('removeAddonConfirm', 'Delete this add-on field? Its options will be lost.');
 		} else if ($card.hasClass('pab-child-row')) {
@@ -744,6 +895,39 @@
 			markFormDirty();
 		});
 		mediaFrame.open();
+	});
+
+	$(document).on('click', '.pab-select-popup-side-image', function (e) {
+		e.preventDefault();
+		var $td = $(this).closest('td');
+		var $hidden = $td.find('.pab-popup-side-image-url');
+		var $preview = $td.find('.pab-popup-side-image-preview');
+		var $clear = $td.find('.pab-clear-popup-side-image');
+
+		var mediaFrame = wp.media({ title: 'Select popup image', button: { text: 'Use this image' }, multiple: false });
+		mediaFrame.on('select', function () {
+			var attachment = mediaFrame.state().get('selection').first().toJSON();
+			var url = attachment.url || '';
+			$hidden.val(url);
+			if (url) {
+				$preview.attr('src', url).removeClass('is-empty').show();
+				$clear.removeClass('pab-is-hidden');
+			}
+			mediaFrame = null;
+			markFormDirty();
+		});
+		mediaFrame.open();
+	});
+
+	$(document).on('click', '.pab-clear-popup-side-image', function (e) {
+		e.preventDefault();
+		var $td = $(this).closest('td');
+		var $hidden = $td.find('.pab-popup-side-image-url');
+		var $preview = $td.find('.pab-popup-side-image-preview');
+		$hidden.val('');
+		$preview.attr('src', '').addClass('is-empty').hide();
+		$(this).addClass('pab-is-hidden');
+		markFormDirty();
 	});
 
 	/* ---- Keyboard reorder buttons ---- */
@@ -1095,6 +1279,7 @@
 		$('#pab-addon-fields-list .pab-addon-row').each(function () {
 			initAddonRow($(this));
 		});
+		reindexAddonRows();
 		$('#pab-child-products-list .pab-child-row').each(function () {
 			initChildProductSearch($(this));
 			hydrateVariationList($(this));

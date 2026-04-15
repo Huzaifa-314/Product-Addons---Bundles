@@ -85,6 +85,7 @@ class PAB_Cart_Hooks {
 	public function __construct() {
 		add_filter( 'woocommerce_add_to_cart_validation',          [ $this, 'validate_image_swatch_children' ], 10, 3 );
 		add_filter( 'woocommerce_add_to_cart_validation',          [ $this, 'validate_image_swatch_customer_upload' ], 11, 3 );
+		add_filter( 'woocommerce_add_to_cart_validation',          [ $this, 'validate_popup_nested_required' ], 12, 3 );
 		add_filter( 'woocommerce_add_cart_item_data',             [ $this, 'add_cart_item_data' ], 10, 3 );
 		add_filter( 'woocommerce_get_cart_item_from_session',     [ $this, 'get_cart_item_from_session' ], 10, 2 );
 		add_action( 'woocommerce_before_calculate_totals',        [ $this, 'before_calculate_totals' ], 20 );
@@ -164,51 +165,127 @@ class PAB_Cart_Hooks {
 		if ( ! $passed ) {
 			return false;
 		}
-		if ( empty( $_POST['pab_addon'] ) || ! is_array( $_POST['pab_addon'] ) ) {
-			return $passed;
-		}
 
 		$addon_fields = PAB_Group_Resolver::resolve_addon_fields( (int) $product_id );
 		$image_mimes  = [ 'image/jpeg', 'image/png', 'image/gif', 'image/webp' ];
 
-		foreach ( wp_unslash( $_POST['pab_addon'] ) as $i => $value ) {
-			$i = (int) $i;
-			if ( ! isset( $addon_fields[ $i ] ) ) {
-				continue;
-			}
-			$field = $addon_fields[ $i ];
-			if ( 'image_swatch' !== ( $field['type'] ?? '' ) ) {
-				continue;
-			}
-			if ( empty( $field['swatch_allow_custom_upload'] ) ) {
-				continue;
-			}
+		if ( ! empty( $_POST['pab_addon'] ) && is_array( $_POST['pab_addon'] ) ) {
+			foreach ( wp_unslash( $_POST['pab_addon'] ) as $i => $value ) {
+				$i = (int) $i;
+				if ( ! isset( $addon_fields[ $i ] ) ) {
+					continue;
+				}
+				$field = $addon_fields[ $i ];
+				if ( 'image_swatch' !== ( $field['type'] ?? '' ) ) {
+					continue;
+				}
+				if ( empty( $field['swatch_allow_custom_upload'] ) ) {
+					continue;
+				}
 
-			$posted = sanitize_text_field( (string) $value );
-			if ( $posted !== PAB_Data::SWATCH_CUSTOM_POST_VALUE ) {
-				continue;
-			}
+				$posted = sanitize_text_field( (string) $value );
+				if ( $posted !== PAB_Data::SWATCH_CUSTOM_POST_VALUE ) {
+					continue;
+				}
 
-			if ( empty( $_FILES['pab_addon_file']['name'][ $i ] ) || ! is_array( $_FILES['pab_addon_file']['tmp_name'] ) ) {
-				wc_add_notice( __( 'Please upload an image for your swatch selection.', 'pab' ), 'error' );
-				return false;
-			}
+				if ( empty( $_FILES['pab_addon_file']['name'][ $i ] ) || ! is_array( $_FILES['pab_addon_file']['tmp_name'] ) ) {
+					wc_add_notice( __( 'Please upload an image for your swatch selection.', 'pab' ), 'error' );
+					return false;
+				}
 
-			$tmp = $_FILES['pab_addon_file']['tmp_name'][ $i ];
-			if ( empty( $tmp ) || ! is_uploaded_file( $tmp ) ) {
-				wc_add_notice( __( 'Please upload an image for your swatch selection.', 'pab' ), 'error' );
-				return false;
-			}
+				$tmp = $_FILES['pab_addon_file']['tmp_name'][ $i ];
+				if ( empty( $tmp ) || ! is_uploaded_file( $tmp ) ) {
+					wc_add_notice( __( 'Please upload an image for your swatch selection.', 'pab' ), 'error' );
+					return false;
+				}
 
-			$finfo = new finfo( FILEINFO_MIME_TYPE );
-			$mime  = $finfo->file( $tmp );
-			if ( ! in_array( $mime, $image_mimes, true ) ) {
-				wc_add_notice( __( 'Please upload a valid image file (JPEG, PNG, GIF, or WebP).', 'pab' ), 'error' );
-				return false;
+				$finfo = new finfo( FILEINFO_MIME_TYPE );
+				$mime  = $finfo->file( $tmp );
+				if ( ! in_array( $mime, $image_mimes, true ) ) {
+					wc_add_notice( __( 'Please upload a valid image file (JPEG, PNG, GIF, or WebP).', 'pab' ), 'error' );
+					return false;
+				}
+			}
+		}
+
+		if ( ! empty( $_POST['pab_popup'] ) && is_array( $_POST['pab_popup'] ) ) {
+			foreach ( wp_unslash( $_POST['pab_popup'] ) as $pid_raw => $rows ) {
+				$pid = sanitize_key( (string) $pid_raw );
+				if ( '' === $pid || ! is_array( $rows ) ) {
+					continue;
+				}
+				$popup_cfg = $this->find_popup_field_by_id( $addon_fields, $pid );
+				if ( ! $popup_cfg ) {
+					continue;
+				}
+				$nested = $popup_cfg['nested_fields'] ?? [];
+				foreach ( $rows as $ci => $value ) {
+					$ci = (int) $ci;
+					if ( ! isset( $nested[ $ci ] ) ) {
+						continue;
+					}
+					$field = $nested[ $ci ];
+					if ( 'image_swatch' !== ( $field['type'] ?? '' ) || empty( $field['swatch_allow_custom_upload'] ) ) {
+						continue;
+					}
+					$posted = sanitize_text_field( (string) $value );
+					if ( $posted !== PAB_Data::SWATCH_CUSTOM_POST_VALUE ) {
+						continue;
+					}
+					if ( empty( $_FILES['pab_popup_file']['name'][ $pid ][ $ci ] ) ) {
+						wc_add_notice( __( 'Please upload an image for your swatch selection.', 'pab' ), 'error' );
+						return false;
+					}
+					$tmp = $_FILES['pab_popup_file']['tmp_name'][ $pid ][ $ci ] ?? '';
+					if ( empty( $tmp ) || ! is_uploaded_file( $tmp ) ) {
+						wc_add_notice( __( 'Please upload an image for your swatch selection.', 'pab' ), 'error' );
+						return false;
+					}
+					$finfo = new finfo( FILEINFO_MIME_TYPE );
+					$mime  = $finfo->file( $tmp );
+					if ( ! in_array( $mime, $image_mimes, true ) ) {
+						wc_add_notice( __( 'Please upload a valid image file (JPEG, PNG, GIF, or WebP).', 'pab' ), 'error' );
+						return false;
+					}
+				}
 			}
 		}
 
 		return $passed;
+	}
+
+	/**
+	 * @param array<string,mixed> $addon_fields
+	 * @return array<string,mixed>|null
+	 */
+	private function find_popup_field_by_id( array $addon_fields, string $popup_id ) {
+		foreach ( $addon_fields as $f ) {
+			if ( ! is_array( $f ) ) {
+				continue;
+			}
+			if ( 'popup' === ( $f['type'] ?? '' ) && sanitize_key( (string) ( $f['id'] ?? '' ) ) === $popup_id ) {
+				return $f;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * @param array<string,mixed> $file_array Single file entry for wp_handle_upload.
+	 */
+	private function upload_customer_image_file_array( array $file_array ): string {
+		if ( ! empty( $file_array['error'] ) && UPLOAD_ERR_OK !== (int) $file_array['error'] ) {
+			return '';
+		}
+		$allowed_mime = [ 'image/jpeg', 'image/png', 'image/gif', 'image/webp' ];
+		$finfo        = new finfo( FILEINFO_MIME_TYPE );
+		$mime         = $finfo->file( $file_array['tmp_name'] );
+		if ( ! in_array( $mime, $allowed_mime, true ) ) {
+			return '';
+		}
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		$upload = wp_handle_upload( $file_array, [ 'test_form' => false ] );
+		return ! empty( $upload['url'] ) ? esc_url_raw( $upload['url'] ) : '';
 	}
 
 	/**
@@ -220,7 +297,6 @@ class PAB_Cart_Hooks {
 		if ( empty( $_FILES['pab_addon_file']['name'][ $index ] ) ) {
 			return '';
 		}
-
 		$file_array = [
 			'name'     => $_FILES['pab_addon_file']['name'][ $index ],
 			'type'     => $_FILES['pab_addon_file']['type'][ $index ],
@@ -228,22 +304,86 @@ class PAB_Cart_Hooks {
 			'error'    => $_FILES['pab_addon_file']['error'][ $index ],
 			'size'     => $_FILES['pab_addon_file']['size'][ $index ],
 		];
+		return $this->upload_customer_image_file_array( $file_array );
+	}
 
-		if ( ! empty( $file_array['error'] ) && UPLOAD_ERR_OK !== (int) $file_array['error'] ) {
+	/**
+	 * Swatch custom upload inside a popup nested field.
+	 */
+	private function upload_popup_swatch_customer_image( string $popup_field_id, int $child_index ): string {
+		if ( empty( $_FILES['pab_popup_file']['name'][ $popup_field_id ][ $child_index ] ) ) {
 			return '';
 		}
+		$file_array = [
+			'name'     => $_FILES['pab_popup_file']['name'][ $popup_field_id ][ $child_index ],
+			'type'     => $_FILES['pab_popup_file']['type'][ $popup_field_id ][ $child_index ],
+			'tmp_name' => $_FILES['pab_popup_file']['tmp_name'][ $popup_field_id ][ $child_index ],
+			'error'    => $_FILES['pab_popup_file']['error'][ $popup_field_id ][ $child_index ],
+			'size'     => $_FILES['pab_popup_file']['size'][ $popup_field_id ][ $child_index ],
+		];
+		return $this->upload_customer_image_file_array( $file_array );
+	}
 
-		$allowed_mime = [ 'image/jpeg', 'image/png', 'image/gif', 'image/webp' ];
-		$finfo        = new finfo( FILEINFO_MIME_TYPE );
-		$mime         = $finfo->file( $file_array['tmp_name'] );
-		if ( ! in_array( $mime, $allowed_mime, true ) ) {
-			return '';
+	/**
+	 * Require popup nested fields marked required.
+	 *
+	 * @param bool $passed     Whether validation passed.
+	 * @param int  $product_id Product being added.
+	 * @param int  $quantity   Requested quantity.
+	 */
+	public function validate_popup_nested_required( $passed, $product_id, $quantity ) {
+		if ( ! $passed ) {
+			return false;
+		}
+		$addon_fields = PAB_Group_Resolver::resolve_addon_fields( (int) $product_id );
+		$posted       = ( ! empty( $_POST['pab_popup'] ) && is_array( $_POST['pab_popup'] ) ) ? wp_unslash( $_POST['pab_popup'] ) : [];
+
+		foreach ( $addon_fields as $popup_cfg ) {
+			if ( ! is_array( $popup_cfg ) || 'popup' !== ( $popup_cfg['type'] ?? '' ) ) {
+				continue;
+			}
+			$pid = sanitize_key( (string) ( $popup_cfg['id'] ?? '' ) );
+			if ( '' === $pid ) {
+				continue;
+			}
+			foreach ( $popup_cfg['nested_fields'] ?? [] as $ci => $child ) {
+				if ( ! is_array( $child ) || empty( $child['required'] ) ) {
+					continue;
+				}
+				$ci = (int) $ci;
+				$type = $child['type'] ?? 'text';
+				$val  = isset( $posted[ $pid ][ $ci ] ) ? sanitize_text_field( (string) $posted[ $pid ][ $ci ] ) : '';
+
+				if ( 'checkbox' === $type && $val !== '1' ) {
+					wc_add_notice( __( 'Please complete all required options in the popup.', 'pab' ), 'error' );
+					return false;
+				}
+				if ( 'image_swatch' === $type && $val === '' ) {
+					wc_add_notice( __( 'Please complete all required options in the popup.', 'pab' ), 'error' );
+					return false;
+				}
+				if ( 'image_swatch' === $type && ! empty( $child['swatch_allow_custom_upload'] ) && $val === PAB_Data::SWATCH_CUSTOM_POST_VALUE ) {
+					if ( empty( $_FILES['pab_popup_file']['name'][ $pid ][ $ci ] ) ) {
+						wc_add_notice( __( 'Please upload an image for your swatch selection.', 'pab' ), 'error' );
+						return false;
+					}
+					continue;
+				}
+				if ( in_array( $type, [ 'file', 'image_upload' ], true ) ) {
+					if ( empty( $_FILES['pab_popup_file']['name'][ $pid ][ $ci ] ) ) {
+						wc_add_notice( __( 'Please upload the required file.', 'pab' ), 'error' );
+						return false;
+					}
+					continue;
+				}
+				if ( $val === '' && 'checkbox' !== $type ) {
+					wc_add_notice( __( 'Please complete all required options in the popup.', 'pab' ), 'error' );
+					return false;
+				}
+			}
 		}
 
-		require_once ABSPATH . 'wp-admin/includes/file.php';
-		$upload = wp_handle_upload( $file_array, [ 'test_form' => false ] );
-
-		return ! empty( $upload['url'] ) ? esc_url_raw( $upload['url'] ) : '';
+		return $passed;
 	}
 
 	// -------------------------------------------------------------------------
@@ -373,6 +513,157 @@ class PAB_Cart_Hooks {
 						'price_type' => 'flat',
 						'type'       => $field['type'],
 					];
+				}
+			}
+		}
+
+		// --- Popup nested add-on fields ---
+		if ( ! empty( $_POST['pab_popup'] ) && is_array( $_POST['pab_popup'] ) ) {
+			$addon_fields = PAB_Group_Resolver::resolve_addon_fields( (int) $product_id );
+			foreach ( wp_unslash( $_POST['pab_popup'] ) as $pid_raw => $rows ) {
+				$pid = sanitize_key( (string) $pid_raw );
+				if ( '' === $pid || ! is_array( $rows ) ) {
+					continue;
+				}
+				$popup_cfg = $this->find_popup_field_by_id( $addon_fields, $pid );
+				if ( ! $popup_cfg ) {
+					continue;
+				}
+				$popup_head = trim( (string) ( $popup_cfg['popup_title'] ?? $popup_cfg['label'] ?? '' ) );
+				if ( $popup_head === '' ) {
+					$popup_head = __( 'Popup', 'pab' );
+				}
+				$nested = $popup_cfg['nested_fields'] ?? [];
+				foreach ( $rows as $ci => $value ) {
+					$ci = (int) $ci;
+					if ( ! isset( $nested[ $ci ] ) ) {
+						continue;
+					}
+					$field  = $nested[ $ci ];
+					$posted = sanitize_text_field( is_string( $value ) ? $value : '' );
+					$label  = sprintf( '%1$s — %2$s', $popup_head, $field['label'] ?? __( 'Option', 'pab' ) );
+					$price      = 0.0;
+					$price_type = $field['price_type'] ?? 'flat';
+
+					if ( 'image_swatch' === ( $field['type'] ?? '' ) && $posted === PAB_Data::SWATCH_CUSTOM_POST_VALUE && empty( $field['swatch_allow_custom_upload'] ) ) {
+						continue;
+					}
+
+					$file_url       = '';
+					$display_value  = $posted;
+					$is_swatch_post = ( 'image_swatch' === ( $field['type'] ?? '' ) );
+					$is_custom_path = $is_swatch_post && ! empty( $field['swatch_allow_custom_upload'] ) && $posted === PAB_Data::SWATCH_CUSTOM_POST_VALUE;
+
+					if ( $is_custom_path ) {
+						$mode = $field['choice_price_mode'] ?? 'per_option';
+						if ( 'uniform' === $mode ) {
+							$price      = (float) ( $field['price'] ?? 0 );
+							$price_type = $field['price_type'] ?? 'flat';
+						} else {
+							$price      = (float) ( $field['swatch_custom_price'] ?? 0 );
+							$price_type = 'flat';
+						}
+						$file_url = $this->upload_popup_swatch_customer_image( $pid, $ci );
+						$lbl      = isset( $field['swatch_custom_label'] ) ? trim( (string) $field['swatch_custom_label'] ) : '';
+						if ( $lbl === '' ) {
+							$lbl = __( 'Custom image', 'pab' );
+						}
+						$display_value = $lbl;
+					} elseif ( in_array( $field['type'], [ 'select', 'radio', 'image_swatch', 'text_swatch' ], true ) ) {
+						foreach ( $field['options'] ?? [] as $opt ) {
+							if ( ( $opt['label'] ?? '' ) === $posted ) {
+								$price = (float) ( $opt['price'] ?? 0 );
+								break;
+							}
+						}
+					} elseif ( $field['type'] === 'checkbox' ) {
+						$price = $posted ? (float) ( $field['price'] ?? 0 ) : 0;
+					} else {
+						$price = (float) ( $field['price'] ?? 0 );
+					}
+
+					if ( $posted === '' && ! in_array( $field['type'], [ 'checkbox' ], true ) ) {
+						if ( empty( $field['required'] ) ) {
+							continue;
+						}
+					}
+
+					$row = [
+						'label'      => $label,
+						'value'      => $display_value,
+						'price'      => $price,
+						'price_type' => $price_type,
+						'type'       => $field['type'],
+					];
+					if ( $file_url !== '' ) {
+						$row['file_url'] = $file_url;
+					}
+					$addon_data[] = $row;
+				}
+			}
+		}
+
+// --- Popup file uploads (excluding image swatch custom merge above) ---
+		if ( ! empty( $_FILES['pab_popup_file']['name'] ) && is_array( $_FILES['pab_popup_file']['name'] ) ) {
+			$addon_fields = PAB_Group_Resolver::resolve_addon_fields( (int) $product_id );
+			foreach ( $_FILES['pab_popup_file']['name'] as $pid_raw => $inner ) {
+				if ( ! is_array( $inner ) ) {
+					continue;
+				}
+				$pid = sanitize_key( (string) $pid_raw );
+				if ( '' === $pid ) {
+					continue;
+				}
+				$popup_cfg = $this->find_popup_field_by_id( $addon_fields, $pid );
+				if ( ! $popup_cfg ) {
+					continue;
+				}
+				$popup_head = trim( (string) ( $popup_cfg['popup_title'] ?? $popup_cfg['label'] ?? '' ) );
+				if ( $popup_head === '' ) {
+					$popup_head = __( 'Popup', 'pab' );
+				}
+				$nested = $popup_cfg['nested_fields'] ?? [];
+				foreach ( $inner as $ci => $filename ) {
+					if ( empty( $filename ) ) {
+						continue;
+					}
+					$ci = (int) $ci;
+					if ( ! isset( $nested[ $ci ] ) ) {
+						continue;
+					}
+					$field = $nested[ $ci ];
+					if ( 'image_swatch' === ( $field['type'] ?? '' ) ) {
+						continue;
+					}
+					if ( ! in_array( $field['type'], [ 'file', 'image_upload' ], true ) ) {
+						continue;
+					}
+					$label = sprintf( '%1$s — %2$s', $popup_head, $field['label'] ?? '' );
+					$price = (float) ( $field['price'] ?? 0 );
+					$file_array = [
+						'name'     => $_FILES['pab_popup_file']['name'][ $pid ][ $ci ],
+						'type'     => $_FILES['pab_popup_file']['type'][ $pid ][ $ci ],
+						'tmp_name' => $_FILES['pab_popup_file']['tmp_name'][ $pid ][ $ci ],
+						'error'    => $_FILES['pab_popup_file']['error'][ $pid ][ $ci ],
+						'size'     => $_FILES['pab_popup_file']['size'][ $pid ][ $ci ],
+					];
+					$allowed_mime = [ 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf', 'text/plain' ];
+					$finfo        = new finfo( FILEINFO_MIME_TYPE );
+					$mime         = $finfo->file( $file_array['tmp_name'] );
+					if ( ! in_array( $mime, $allowed_mime, true ) ) {
+						continue;
+					}
+					require_once ABSPATH . 'wp-admin/includes/file.php';
+					$upload = wp_handle_upload( $file_array, [ 'test_form' => false ] );
+					if ( ! empty( $upload['url'] ) ) {
+						$addon_data[] = [
+							'label'      => $label,
+							'value'      => $upload['url'],
+							'price'      => $price,
+							'price_type' => 'flat',
+							'type'       => $field['type'],
+						];
+					}
 				}
 			}
 		}

@@ -36,6 +36,49 @@ class PAB_Data {
 	}
 
 	/**
+	 * @param array<string,mixed> $field
+	 * @return array<string,mixed>
+	 */
+	private static function normalize_one_addon_field( array $field ): array {
+		$id = isset( $field['id'] ) ? sanitize_key( (string) $field['id'] ) : '';
+		if ( '' === $id ) {
+			$id = self::generate_id( 'field' );
+		}
+		$field['id'] = $id;
+		if ( isset( $field['options'] ) && is_array( $field['options'] ) ) {
+			$opts = [];
+			foreach ( $field['options'] as $option ) {
+				if ( ! is_array( $option ) ) {
+					continue;
+				}
+				$opt_id = isset( $option['id'] ) ? sanitize_key( (string) $option['id'] ) : '';
+				if ( '' === $opt_id ) {
+					$opt_id = self::generate_id( 'opt' );
+				}
+				$option['id'] = $opt_id;
+				$opts[]       = $option;
+			}
+			$field['options'] = $opts;
+		} else {
+			$field['options'] = [];
+		}
+		$type = isset( $field['type'] ) ? sanitize_key( (string) $field['type'] ) : '';
+		if ( 'popup' === $type && isset( $field['nested_fields'] ) && is_array( $field['nested_fields'] ) ) {
+			$nested = [];
+			foreach ( $field['nested_fields'] as $child ) {
+				if ( ! is_array( $child ) ) {
+					continue;
+				}
+				$nested[] = self::normalize_one_addon_field( $child );
+			}
+			$field['nested_fields'] = $nested;
+		} elseif ( isset( $field['nested_fields'] ) ) {
+			unset( $field['nested_fields'] );
+		}
+		return $field;
+	}
+
+	/**
 	 * @param array<int,array<string,mixed>> $fields
 	 * @return array<int,array<string,mixed>>
 	 */
@@ -45,29 +88,7 @@ class PAB_Data {
 			if ( ! is_array( $field ) ) {
 				continue;
 			}
-			$id = isset( $field['id'] ) ? sanitize_key( (string) $field['id'] ) : '';
-			if ( '' === $id ) {
-				$id = self::generate_id( 'field' );
-			}
-			$field['id'] = $id;
-			if ( isset( $field['options'] ) && is_array( $field['options'] ) ) {
-				$opts = [];
-				foreach ( $field['options'] as $option ) {
-					if ( ! is_array( $option ) ) {
-						continue;
-					}
-					$opt_id = isset( $option['id'] ) ? sanitize_key( (string) $option['id'] ) : '';
-					if ( '' === $opt_id ) {
-						$opt_id = self::generate_id( 'opt' );
-					}
-					$option['id'] = $opt_id;
-					$opts[]       = $option;
-				}
-				$field['options'] = $opts;
-			} else {
-				$field['options'] = [];
-			}
-			$normalized[] = $field;
+			$normalized[] = self::normalize_one_addon_field( $field );
 		}
 		return $normalized;
 	}

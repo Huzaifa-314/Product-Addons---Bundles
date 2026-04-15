@@ -99,6 +99,7 @@ class PAB_Product_Tab {
 						<option value="image_upload"><?php esc_html_e( 'Image Upload', 'pab' ); ?></option>
 						<option value="image_swatch"><?php esc_html_e( 'Image Swatch', 'pab' ); ?></option>
 						<option value="text_swatch"><?php esc_html_e( 'Text Swatch', 'pab' ); ?></option>
+						<option value="popup"><?php esc_html_e( 'Popup', 'pab' ); ?></option>
 					</select>
 					<button type="button" class="button button-primary pab-add-addon-field"><?php esc_html_e( 'Add field', 'pab' ); ?></button>
 				</div>
@@ -118,10 +119,13 @@ class PAB_Product_Tab {
 		<div id="pab-tmpl-addon-row" style="display:none">
 			<?php $this->render_addon_row( '__PAB_FIELD_INDEX__', [], true ); ?>
 		</div>
+		<div id="pab-tmpl-nested-addon-row" style="display:none">
+			<?php $this->render_addon_row( '__PAB_NESTED_INDEX__', [], true, '__PAB_PARENT_INDEX__' ); ?>
+		</div>
 		<div id="pab-tmpl-option-row" style="display:none">
 			<?php
 			/* Full structure (image column present); JS syncs visibility per field type. */
-			$this->render_option_row( '__PAB_FIELD_INDEX__', '__PAB_OPT_INDEX__', [], 'image_swatch', true, 'per_option' );
+			$this->render_option_row( '__PAB_FIELD_NAME_ROOT__', '__PAB_OPT_INDEX__', [], 'image_swatch', true, 'per_option' );
 			?>
 		</div>
 		<div id="pab-tmpl-options-head" style="display:none">
@@ -149,7 +153,7 @@ class PAB_Product_Tab {
 		<?php
 	}
 
-	private function render_addon_row( $index, $field, $is_template = false ) {
+	private function render_addon_row( $index, $field, $is_template = false, $nested_parent_index = null ) {
 		$field_id        = isset( $field['id'] ) ? sanitize_key( (string) $field['id'] ) : '';
 		if ( '' === $field_id ) {
 			$field_id = '__PAB_FIELD_ID__';
@@ -165,6 +169,18 @@ class PAB_Product_Tab {
 		$swatch_allow_custom = ! empty( $field['swatch_allow_custom_upload'] );
 		$swatch_custom_label = isset( $field['swatch_custom_label'] ) ? (string) $field['swatch_custom_label'] : '';
 		$swatch_custom_price = isset( $field['swatch_custom_price'] ) ? $field['swatch_custom_price'] : '';
+		$popup_button_label  = isset( $field['popup_button_label'] ) ? (string) $field['popup_button_label'] : '';
+		$popup_title         = isset( $field['popup_title'] ) ? (string) $field['popup_title'] : '';
+		$popup_description   = isset( $field['popup_description'] ) ? (string) $field['popup_description'] : '';
+		$popup_side_image    = isset( $field['popup_side_image'] ) ? (string) $field['popup_side_image'] : '';
+		$placeholder         = isset( $field['placeholder'] ) ? (string) $field['placeholder'] : '';
+		$nested_fields       = isset( $field['nested_fields'] ) && is_array( $field['nested_fields'] ) ? $field['nested_fields'] : [];
+
+		if ( null === $nested_parent_index ) {
+			$field_name_root = 'pab_addon_fields[' . $index . ']';
+		} else {
+			$field_name_root = 'pab_addon_fields[' . $nested_parent_index . '][nested_fields][' . $index . ']';
+		}
 
 		$field_types = [
 			'text'         => __( 'Text Input', 'pab' ),
@@ -177,6 +193,7 @@ class PAB_Product_Tab {
 			'image_upload' => __( 'Image Upload', 'pab' ),
 			'image_swatch' => __( 'Image Swatch', 'pab' ),
 			'text_swatch'  => __( 'Text Swatch', 'pab' ),
+			'popup'        => __( 'Popup', 'pab' ),
 		];
 
 		$price_types = [
@@ -185,15 +202,21 @@ class PAB_Product_Tab {
 			'per_qty'    => __( 'Per Quantity', 'pab' ),
 		];
 
+		$id_suffix = preg_replace( '/[^a-zA-Z0-9_-]+/', '-', (string) $field_name_root );
+
 		$has_options    = in_array( $type, [ 'select', 'radio', 'image_swatch', 'text_swatch' ], true );
+		$is_popup       = ( 'popup' === $type );
+		$has_placeholder = in_array( $type, [ 'text', 'textarea', 'number' ], true );
 		$type_label     = $field_types[ $type ] ?? $field_types['text'];
 		$display_title    = $label ? $label : __( 'New field', 'pab' );
 		$display_key      = ( $is_template || '__PAB_FIELD_ID__' === $field_id ) ? '' : $field_id;
 		$body_hidden_attr = $is_template ? '' : ' style="' . esc_attr( 'display: none;' ) . '"';
 		$toggle_expanded  = $is_template ? 'true' : 'false';
 		$toggle_icon_cls  = $is_template ? 'dashicons dashicons-arrow-down-alt2' : 'dashicons dashicons-arrow-right-alt2';
+		$row_classes      = 'pab-settings-card pab-addon-row' . ( null !== $nested_parent_index ? ' pab-addon-row--nested' : '' );
+		$standard_sections_hidden = $is_popup && null === $nested_parent_index;
 		?>
-		<div class="pab-settings-card pab-addon-row" data-index="<?php echo esc_attr( $index ); ?>" data-field-id="<?php echo esc_attr( $field_id ); ?>">
+		<div class="<?php echo esc_attr( $row_classes ); ?>" data-index="<?php echo esc_attr( $index ); ?>" data-field-id="<?php echo esc_attr( $field_id ); ?>" data-pab-name-root="<?php echo esc_attr( $field_name_root ); ?>">
 			<div class="pab-settings-card__header pab-addon-row__header">
 				<span class="dashicons dashicons-move pab-drag-handle" aria-hidden="true"></span><button type="button" class="pab-move-btn pab-move-up" aria-label="Move up" title="Move up">▲</button><button type="button" class="pab-move-btn pab-move-down" aria-label="Move down" title="Move down">▼</button>
 				<div class="pab-addon-row__summary">
@@ -202,7 +225,9 @@ class PAB_Product_Tab {
 				</div>
 				<span class="pab-field-type-badge"><?php echo esc_html( $type_label ); ?></span>
 				<div class="pab-addon-row__actions">
-					<button type="button" class="button-link pab-duplicate-addon-row"><?php esc_html_e( 'Duplicate', 'pab' ); ?></button>
+					<?php if ( null === $nested_parent_index ) : ?>
+						<button type="button" class="button-link pab-duplicate-addon-row"><?php esc_html_e( 'Duplicate', 'pab' ); ?></button>
+					<?php endif; ?>
 					<button type="button" class="button-link-delete pab-remove-row" aria-label="<?php esc_attr_e( 'Delete add-on field', 'pab' ); ?>"><?php esc_html_e( 'Delete', 'pab' ); ?></button>
 					<button type="button" class="button button-small pab-settings-card__toggle" aria-expanded="<?php echo esc_attr( $toggle_expanded ); ?>" aria-label="<?php esc_attr_e( 'Expand or collapse field settings', 'pab' ); ?>">
 						<span class="<?php echo esc_attr( $toggle_icon_cls ); ?>" aria-hidden="true"></span>
@@ -210,15 +235,20 @@ class PAB_Product_Tab {
 				</div>
 			</div>
 			<div class="pab-settings-card__body pab-row-body"<?php echo $body_hidden_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built with esc_attr ?>>
-				<input type="hidden" class="pab-field-id" name="pab_addon_fields[<?php echo esc_attr( $index ); ?>][id]" value="<?php echo esc_attr( $field_id ); ?>"<?php disabled( $is_template, true ); ?> />
+				<input type="hidden" class="pab-field-id" name="<?php echo esc_attr( $field_name_root ); ?>[id]" value="<?php echo esc_attr( $field_id ); ?>"<?php disabled( $is_template, true ); ?> />
 
 				<table class="pab-field-settings-table widefat" role="presentation">
 					<tbody>
 						<tr class="pab-field-settings-table__row">
 							<th scope="row" class="pab-field-settings-table__label"><?php esc_html_e( 'Field type', 'pab' ); ?></th>
 							<td class="pab-field-settings-table__control">
-								<select name="pab_addon_fields[<?php echo esc_attr( $index ); ?>][type]" class="pab-field-type regular-text"<?php disabled( $is_template, true ); ?>>
+								<select name="<?php echo esc_attr( $field_name_root ); ?>[type]" class="pab-field-type regular-text"<?php disabled( $is_template, true ); ?>>
 									<?php foreach ( $field_types as $val => $lbl ) : ?>
+										<?php
+										if ( null !== $nested_parent_index && 'popup' === $val ) {
+											continue;
+										}
+										?>
 										<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $type, $val ); ?>><?php echo esc_html( $lbl ); ?></option>
 									<?php endforeach; ?>
 								</select>
@@ -227,28 +257,109 @@ class PAB_Product_Tab {
 						<tr class="pab-field-settings-table__row">
 							<th scope="row" class="pab-field-settings-table__label"><?php esc_html_e( 'Label', 'pab' ); ?></th>
 							<td class="pab-field-settings-table__control">
-								<input type="text" name="pab_addon_fields[<?php echo esc_attr( $index ); ?>][label]"
+								<input type="text" name="<?php echo esc_attr( $field_name_root ); ?>[label]"
 									value="<?php echo esc_attr( $label ); ?>" class="pab-field-label regular-text"<?php disabled( $is_template, true ); ?> />
 							</td>
 						</tr>
 						<tr class="pab-field-settings-table__row">
 							<th scope="row" class="pab-field-settings-table__label"><?php esc_html_e( 'Required', 'pab' ); ?></th>
 							<td class="pab-field-settings-table__control">
-								<label><input type="checkbox" class="checkbox" name="pab_addon_fields[<?php echo esc_attr( $index ); ?>][required]"
+								<label><input type="checkbox" class="checkbox" name="<?php echo esc_attr( $field_name_root ); ?>[required]"
 									value="1" <?php echo $required; ?><?php disabled( $is_template, true ); ?> /> <?php esc_html_e( 'Required on the product page', 'pab' ); ?></label>
+							</td>
+						</tr>
+						<tr class="pab-field-settings-table__row pab-field-placeholder-row <?php echo $has_placeholder ? '' : 'pab-is-hidden'; ?>">
+							<th scope="row" class="pab-field-settings-table__label"><?php esc_html_e( 'Placeholder', 'pab' ); ?></th>
+							<td class="pab-field-settings-table__control">
+								<input type="text" class="regular-text pab-field-placeholder" name="<?php echo esc_attr( $field_name_root ); ?>[placeholder]"
+									value="<?php echo esc_attr( $placeholder ); ?>"<?php disabled( $is_template, true ); ?> />
+								<p class="description"><?php esc_html_e( 'Optional hint text shown inside the field until the customer types.', 'pab' ); ?></p>
 							</td>
 						</tr>
 					</tbody>
 				</table>
 
-				<div class="pab-choice-pricing-section <?php echo $has_options ? '' : 'pab-is-hidden'; ?>">
+				<?php if ( null === $nested_parent_index ) : ?>
+				<div class="pab-popup-settings <?php echo $is_popup ? '' : 'pab-is-hidden'; ?>">
+					<h4 class="pab-field-settings-heading"><?php esc_html_e( 'Popup', 'pab' ); ?></h4>
+					<table class="pab-field-settings-table widefat" role="presentation">
+						<tbody>
+							<tr class="pab-field-settings-table__row">
+								<th scope="row" class="pab-field-settings-table__label"><?php esc_html_e( 'Button label', 'pab' ); ?></th>
+								<td class="pab-field-settings-table__control">
+									<input type="text" class="regular-text" name="<?php echo esc_attr( $field_name_root ); ?>[popup_button_label]"
+										value="<?php echo esc_attr( $popup_button_label ); ?>" placeholder="<?php echo esc_attr__( 'e.g. Customize', 'pab' ); ?>"<?php disabled( $is_template, true ); ?> />
+								</td>
+							</tr>
+							<tr class="pab-field-settings-table__row">
+								<th scope="row" class="pab-field-settings-table__label"><?php esc_html_e( 'Popup title', 'pab' ); ?></th>
+								<td class="pab-field-settings-table__control">
+									<input type="text" class="regular-text" name="<?php echo esc_attr( $field_name_root ); ?>[popup_title]"
+										value="<?php echo esc_attr( $popup_title ); ?>"<?php disabled( $is_template, true ); ?> />
+								</td>
+							</tr>
+							<tr class="pab-field-settings-table__row">
+								<th scope="row" class="pab-field-settings-table__label"><?php esc_html_e( 'Popup description', 'pab' ); ?></th>
+								<td class="pab-field-settings-table__control">
+									<textarea class="large-text" rows="4" name="<?php echo esc_attr( $field_name_root ); ?>[popup_description]"<?php disabled( $is_template, true ); ?>><?php echo esc_textarea( $popup_description ); ?></textarea>
+									<p class="description"><?php esc_html_e( 'HTML is allowed (filtered on save).', 'pab' ); ?></p>
+								</td>
+							</tr>
+							<tr class="pab-field-settings-table__row">
+								<th scope="row" class="pab-field-settings-table__label"><?php esc_html_e( 'Popup side image', 'pab' ); ?></th>
+								<td class="pab-field-settings-table__control">
+									<input type="hidden" class="pab-popup-side-image-url" name="<?php echo esc_attr( $field_name_root ); ?>[popup_side_image]" value="<?php echo esc_attr( $popup_side_image ); ?>"<?php disabled( $is_template, true ); ?> />
+									<div class="pab-popup-side-image-tools">
+										<?php if ( $popup_side_image ) : ?>
+											<img src="<?php echo esc_url( $popup_side_image ); ?>" alt="" class="pab-popup-side-image-preview" />
+										<?php else : ?>
+											<img src="" alt="" class="pab-popup-side-image-preview is-empty" role="presentation" />
+										<?php endif; ?>
+										<button type="button" class="button button-secondary pab-select-popup-side-image"><?php esc_html_e( 'Choose image', 'pab' ); ?></button>
+										<button type="button" class="button button-link pab-clear-popup-side-image <?php echo $popup_side_image ? '' : 'pab-is-hidden'; ?>"><?php esc_html_e( 'Remove', 'pab' ); ?></button>
+									</div>
+									<p class="description"><?php esc_html_e( 'Optional image shown on the left side of the popup (cover). Leave empty for a single-column popup.', 'pab' ); ?></p>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+					<div class="pab-popup-nested-builder">
+						<h4 class="pab-field-settings-heading"><?php esc_html_e( 'Add-ons inside popup', 'pab' ); ?></h4>
+						<p class="pab-popup-nested-toolbar">
+							<label class="screen-reader-text" for="pab-nested-new-type-<?php echo esc_attr( $id_suffix ); ?>"><?php esc_html_e( 'Nested field type', 'pab' ); ?></label>
+							<select id="pab-nested-new-type-<?php echo esc_attr( $id_suffix ); ?>" class="pab-nested-new-field-type regular-text">
+								<option value="text"><?php esc_html_e( 'Text Input', 'pab' ); ?></option>
+								<option value="textarea"><?php esc_html_e( 'Textarea', 'pab' ); ?></option>
+								<option value="select"><?php esc_html_e( 'Select Dropdown', 'pab' ); ?></option>
+								<option value="checkbox"><?php esc_html_e( 'Checkbox', 'pab' ); ?></option>
+								<option value="radio"><?php esc_html_e( 'Radio Button', 'pab' ); ?></option>
+								<option value="number"><?php esc_html_e( 'Number Input', 'pab' ); ?></option>
+								<option value="file"><?php esc_html_e( 'File Upload', 'pab' ); ?></option>
+								<option value="image_upload"><?php esc_html_e( 'Image Upload', 'pab' ); ?></option>
+								<option value="image_swatch"><?php esc_html_e( 'Image Swatch', 'pab' ); ?></option>
+								<option value="text_swatch"><?php esc_html_e( 'Text Swatch', 'pab' ); ?></option>
+							</select>
+							<button type="button" class="button button-secondary pab-add-nested-addon-field"><?php esc_html_e( 'Add field', 'pab' ); ?></button>
+						</p>
+						<div class="pab-popup-nested-list pab-repeater-list">
+							<?php if ( $is_popup ) : ?>
+								<?php foreach ( $nested_fields as $ni => $nf ) : ?>
+									<?php $this->render_addon_row( $ni, $nf, false, $index ); ?>
+								<?php endforeach; ?>
+							<?php endif; ?>
+						</div>
+					</div>
+				</div>
+				<?php endif; ?>
+
+				<div class="pab-choice-pricing-section <?php echo $standard_sections_hidden ? 'pab-is-hidden' : ''; ?> <?php echo $has_options ? '' : 'pab-is-hidden'; ?>">
 					<h4 class="pab-field-settings-heading"><?php esc_html_e( 'Choice pricing', 'pab' ); ?></h4>
 					<table class="pab-field-settings-table widefat" role="presentation">
 						<tbody>
 							<tr class="pab-field-settings-table__row">
 								<th scope="row" class="pab-field-settings-table__label"><?php esc_html_e( 'Mode', 'pab' ); ?></th>
 								<td class="pab-field-settings-table__control">
-									<select name="pab_addon_fields[<?php echo esc_attr( $index ); ?>][choice_price_mode]" class="pab-choice-price-mode"<?php disabled( $is_template, true ); ?>>
+									<select name="<?php echo esc_attr( $field_name_root ); ?>[choice_price_mode]" class="pab-choice-price-mode"<?php disabled( $is_template, true ); ?>>
 										<option value="uniform" <?php selected( $choice_mode, 'uniform' ); ?>><?php esc_html_e( 'Same price for all choices', 'pab' ); ?></option>
 										<option value="per_option" <?php selected( $choice_mode, 'per_option' ); ?>><?php esc_html_e( 'Individual price per choice', 'pab' ); ?></option>
 									</select>
@@ -259,14 +370,14 @@ class PAB_Product_Tab {
 					</table>
 				</div>
 
-				<div class="pab-field-level-pricing <?php echo ( $has_options && $choice_mode === 'per_option' ) ? 'pab-is-hidden' : ''; ?>">
+				<div class="pab-field-level-pricing <?php echo $standard_sections_hidden ? 'pab-is-hidden' : ''; ?> <?php echo ( $has_options && $choice_mode === 'per_option' ) ? 'pab-is-hidden' : ''; ?>">
 					<h4 class="pab-field-settings-heading"><?php esc_html_e( 'Pricing', 'pab' ); ?></h4>
 					<table class="pab-field-settings-table widefat" role="presentation">
 						<tbody>
 							<tr class="pab-field-settings-table__row">
 								<th scope="row" class="pab-field-settings-table__label"><?php esc_html_e( 'Price type', 'pab' ); ?></th>
 								<td class="pab-field-settings-table__control">
-									<select name="pab_addon_fields[<?php echo esc_attr( $index ); ?>][price_type]"<?php disabled( $is_template, true ); ?>>
+									<select name="<?php echo esc_attr( $field_name_root ); ?>[price_type]"<?php disabled( $is_template, true ); ?>>
 										<?php foreach ( $price_types as $val => $lbl ) : ?>
 											<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $price_type, $val ); ?>><?php echo esc_html( $lbl ); ?></option>
 										<?php endforeach; ?>
@@ -277,7 +388,7 @@ class PAB_Product_Tab {
 								<th scope="row" class="pab-field-settings-table__label"><?php esc_html_e( 'Price', 'pab' ); ?></th>
 								<td class="pab-field-settings-table__control">
 									<input type="number" step="0.01" min="0" class="short wc_input_price"
-										name="pab_addon_fields[<?php echo esc_attr( $index ); ?>][price]"
+										name="<?php echo esc_attr( $field_name_root ); ?>[price]"
 										value="<?php echo esc_attr( $price ); ?>"<?php disabled( $is_template, true ); ?> />
 								</td>
 							</tr>
@@ -285,14 +396,14 @@ class PAB_Product_Tab {
 					</table>
 				</div>
 
-				<div class="pab-image-swatch-display-settings <?php echo 'image_swatch' === $type ? '' : 'pab-is-hidden'; ?>">
+				<div class="pab-image-swatch-display-settings <?php echo $standard_sections_hidden ? 'pab-is-hidden' : ''; ?> <?php echo 'image_swatch' === $type ? '' : 'pab-is-hidden'; ?>">
 					<h4 class="pab-field-settings-heading"><?php esc_html_e( 'Image swatch appearance', 'pab' ); ?></h4>
 					<table class="pab-field-settings-table widefat" role="presentation">
 						<tbody>
 							<tr class="pab-field-settings-table__row">
-								<th scope="row" class="pab-field-settings-table__label"><label for="pab-field-swatch-size-<?php echo esc_attr( (string) $index ); ?>"><?php esc_html_e( 'Swatch size', 'pab' ); ?></label></th>
+								<th scope="row" class="pab-field-settings-table__label"><label for="pab-field-swatch-size-<?php echo esc_attr( $id_suffix ); ?>"><?php esc_html_e( 'Swatch size', 'pab' ); ?></label></th>
 								<td class="pab-field-settings-table__control">
-									<select id="pab-field-swatch-size-<?php echo esc_attr( (string) $index ); ?>" class="pab-field-image-swatch-size" name="pab_addon_fields[<?php echo esc_attr( $index ); ?>][image_swatch_size]"<?php disabled( $is_template, true ); ?>>
+									<select id="pab-field-swatch-size-<?php echo esc_attr( $id_suffix ); ?>" class="pab-field-image-swatch-size" name="<?php echo esc_attr( $field_name_root ); ?>[image_swatch_size]"<?php disabled( $is_template, true ); ?>>
 										<option value="small" <?php selected( $image_swatch_size, 'small' ); ?>><?php esc_html_e( 'Small', 'pab' ); ?></option>
 										<option value="medium" <?php selected( $image_swatch_size, 'medium' ); ?>><?php esc_html_e( 'Medium', 'pab' ); ?></option>
 										<option value="large" <?php selected( $image_swatch_size, 'large' ); ?>><?php esc_html_e( 'Large', 'pab' ); ?></option>
@@ -304,7 +415,7 @@ class PAB_Product_Tab {
 					</table>
 				</div>
 
-				<div class="pab-swatch-custom-field-settings <?php echo 'image_swatch' === $type ? '' : 'pab-is-hidden'; ?>">
+				<div class="pab-swatch-custom-field-settings <?php echo $standard_sections_hidden ? 'pab-is-hidden' : ''; ?> <?php echo 'image_swatch' === $type ? '' : 'pab-is-hidden'; ?>">
 					<h4 class="pab-field-settings-heading"><?php esc_html_e( 'Custom image upload', 'pab' ); ?></h4>
 					<table class="pab-field-settings-table widefat" role="presentation">
 						<tbody>
@@ -312,7 +423,7 @@ class PAB_Product_Tab {
 								<th scope="row" class="pab-field-settings-table__label"><?php esc_html_e( 'Allow upload', 'pab' ); ?></th>
 								<td class="pab-field-settings-table__control">
 									<label>
-										<input type="checkbox" class="pab-swatch-allow-custom-upload" name="pab_addon_fields[<?php echo esc_attr( $index ); ?>][swatch_allow_custom_upload]" value="1" <?php checked( $swatch_allow_custom ); ?><?php disabled( $is_template, true ); ?> />
+										<input type="checkbox" class="pab-swatch-allow-custom-upload" name="<?php echo esc_attr( $field_name_root ); ?>[swatch_allow_custom_upload]" value="1" <?php checked( $swatch_allow_custom ); ?><?php disabled( $is_template, true ); ?> />
 										<?php esc_html_e( 'Let buyers upload their own image instead of choosing a preset swatch', 'pab' ); ?>
 									</label>
 								</td>
@@ -320,7 +431,7 @@ class PAB_Product_Tab {
 							<tr class="pab-field-settings-table__row pab-swatch-custom-label-row <?php echo $swatch_allow_custom ? '' : 'pab-is-hidden'; ?>">
 								<th scope="row" class="pab-field-settings-table__label"><?php esc_html_e( 'Label for upload choice', 'pab' ); ?></th>
 								<td class="pab-field-settings-table__control">
-									<input type="text" class="regular-text" name="pab_addon_fields[<?php echo esc_attr( $index ); ?>][swatch_custom_label]"
+									<input type="text" class="regular-text" name="<?php echo esc_attr( $field_name_root ); ?>[swatch_custom_label]"
 										value="<?php echo esc_attr( $swatch_custom_label ); ?>" placeholder="<?php echo esc_attr__( 'e.g. Upload your own', 'pab' ); ?>"<?php disabled( $is_template, true ); ?> />
 									<p class="description"><?php esc_html_e( 'Shown as an extra swatch tile next to your preset images.', 'pab' ); ?></p>
 								</td>
@@ -328,7 +439,7 @@ class PAB_Product_Tab {
 							<tr class="pab-field-settings-table__row pab-swatch-custom-price-row <?php echo ( 'per_option' === $choice_mode && $swatch_allow_custom ) ? '' : 'pab-is-hidden'; ?>">
 								<th scope="row" class="pab-field-settings-table__label"><?php esc_html_e( 'Price for upload choice', 'pab' ); ?></th>
 								<td class="pab-field-settings-table__control">
-									<input type="number" step="0.01" min="0" class="short wc_input_price" name="pab_addon_fields[<?php echo esc_attr( $index ); ?>][swatch_custom_price]"
+									<input type="number" step="0.01" min="0" class="short wc_input_price" name="<?php echo esc_attr( $field_name_root ); ?>[swatch_custom_price]"
 										value="<?php echo esc_attr( $swatch_custom_price ); ?>"<?php disabled( $is_template, true ); ?> />
 									<p class="description"><?php esc_html_e( 'Used when “Individual price per choice” is selected. Otherwise the field price above applies to all choices.', 'pab' ); ?></p>
 								</td>
@@ -337,7 +448,7 @@ class PAB_Product_Tab {
 					</table>
 				</div>
 
-				<div class="pab-options-section <?php echo $has_options ? '' : 'pab-is-hidden'; ?>">
+				<div class="pab-options-section <?php echo $standard_sections_hidden ? 'pab-is-hidden' : ''; ?> <?php echo $has_options ? '' : 'pab-is-hidden'; ?>">
 					<div class="pab-options-panel">
 						<h4 class="pab-field-settings-heading"><?php esc_html_e( 'Choices', 'pab' ); ?></h4>
 						<p class="description pab-option-prices-desc <?php echo ( $choice_mode === 'uniform' ) ? 'pab-is-hidden' : ''; ?>"><?php esc_html_e( 'Optional flat price for each choice (only used when “Individual price per choice” is selected).', 'pab' ); ?></p>
@@ -346,7 +457,7 @@ class PAB_Product_Tab {
 								<?php $this->render_options_table_header( $type, $choice_mode ); ?>
 							<?php endif; ?>
 							<?php foreach ( $options as $opt_i => $opt ) : ?>
-								<?php $this->render_option_row( $index, $opt_i, $opt, $type, $is_template, $choice_mode ); ?>
+								<?php $this->render_option_row( $field_name_root, $opt_i, $opt, $type, $is_template, $choice_mode ); ?>
 							<?php endforeach; ?>
 						</div>
 						<p class="form-field pab-options-actions">
@@ -359,7 +470,7 @@ class PAB_Product_Tab {
 		<?php
 	}
 
-	private function render_option_row( $field_index, $opt_index, $opt, $type, $is_template = false, $choice_mode = 'per_option' ) {
+	private function render_option_row( $field_name_root, $opt_index, $opt, $type, $is_template = false, $choice_mode = 'per_option' ) {
 		$opt_id           = isset( $opt['id'] ) ? sanitize_key( (string) $opt['id'] ) : '';
 		if ( '' === $opt_id ) {
 			$opt_id = '__PAB_OPT_ID__';
@@ -371,24 +482,25 @@ class PAB_Product_Tab {
 		$hide_opt_price   = ( 'uniform' === $choice_mode );
 		$placeholder_lbl  = __( 'e.g. Medium', 'pab' );
 		$placeholder_amt  = __( 'Amount', 'pab' );
+		$opt_id_suffix    = preg_replace( '/[^a-zA-Z0-9_-]+/', '-', (string) $field_name_root . '-' . (string) $opt_index );
 		?>
 		<div class="pab-option-line pab-option-row-flex" role="row">
-			<input type="hidden" class="pab-option-id" name="pab_addon_fields[<?php echo esc_attr( $field_index ); ?>][options][<?php echo esc_attr( $opt_index ); ?>][id]" value="<?php echo esc_attr( $opt_id ); ?>"<?php disabled( $is_template, true ); ?> />
+			<input type="hidden" class="pab-option-id" name="<?php echo esc_attr( $field_name_root ); ?>[options][<?php echo esc_attr( $opt_index ); ?>][id]" value="<?php echo esc_attr( $opt_id ); ?>"<?php disabled( $is_template, true ); ?> />
 			<div class="pab-option-col pab-option-col-label">
-				<label class="screen-reader-text" for="pab-opt-lbl-<?php echo esc_attr( (string) $field_index ); ?>-<?php echo esc_attr( (string) $opt_index ); ?>"><?php esc_html_e( 'Choice label', 'pab' ); ?></label>
-				<input type="text" id="pab-opt-lbl-<?php echo esc_attr( (string) $field_index ); ?>-<?php echo esc_attr( (string) $opt_index ); ?>" class="regular-text pab-option-label-input" placeholder="<?php echo esc_attr( $placeholder_lbl ); ?>"
-					name="pab_addon_fields[<?php echo esc_attr( $field_index ); ?>][options][<?php echo esc_attr( $opt_index ); ?>][label]"
+				<label class="screen-reader-text" for="pab-opt-lbl-<?php echo esc_attr( $opt_id_suffix ); ?>"><?php esc_html_e( 'Choice label', 'pab' ); ?></label>
+				<input type="text" id="pab-opt-lbl-<?php echo esc_attr( $opt_id_suffix ); ?>" class="regular-text pab-option-label-input" placeholder="<?php echo esc_attr( $placeholder_lbl ); ?>"
+					name="<?php echo esc_attr( $field_name_root ); ?>[options][<?php echo esc_attr( $opt_index ); ?>][label]"
 					value="<?php echo esc_attr( $opt_label ); ?>"<?php disabled( $is_template, true ); ?> />
 			</div>
 			<div class="pab-option-col pab-option-col-price <?php echo $hide_opt_price ? 'pab-is-hidden' : ''; ?>">
-				<label class="screen-reader-text" for="pab-opt-prc-<?php echo esc_attr( (string) $field_index ); ?>-<?php echo esc_attr( (string) $opt_index ); ?>"><?php esc_html_e( 'Price', 'pab' ); ?></label>
-				<input type="number" id="pab-opt-prc-<?php echo esc_attr( (string) $field_index ); ?>-<?php echo esc_attr( (string) $opt_index ); ?>" step="0.01" min="0" class="small-text pab-option-price-input wc_input_price" placeholder="<?php echo esc_attr( $placeholder_amt ); ?>"
-					name="pab_addon_fields[<?php echo esc_attr( $field_index ); ?>][options][<?php echo esc_attr( $opt_index ); ?>][price]"
+				<label class="screen-reader-text" for="pab-opt-prc-<?php echo esc_attr( $opt_id_suffix ); ?>"><?php esc_html_e( 'Price', 'pab' ); ?></label>
+				<input type="number" id="pab-opt-prc-<?php echo esc_attr( $opt_id_suffix ); ?>" step="0.01" min="0" class="small-text pab-option-price-input wc_input_price" placeholder="<?php echo esc_attr( $placeholder_amt ); ?>"
+					name="<?php echo esc_attr( $field_name_root ); ?>[options][<?php echo esc_attr( $opt_index ); ?>][price]"
 					value="<?php echo esc_attr( $opt_price ); ?>"<?php disabled( $is_template, true ); ?> />
 			</div>
 			<div class="pab-option-col pab-option-col-image <?php echo $is_swatch ? '' : 'pab-is-hidden'; ?>">
 				<input type="hidden" class="pab-option-image-url"
-					name="pab_addon_fields[<?php echo esc_attr( $field_index ); ?>][options][<?php echo esc_attr( $opt_index ); ?>][image]"
+					name="<?php echo esc_attr( $field_name_root ); ?>[options][<?php echo esc_attr( $opt_index ); ?>][image]"
 					value="<?php echo esc_attr( $opt_image ); ?>"<?php disabled( $is_template, true ); ?> />
 				<div class="pab-option-image-tools">
 					<?php if ( $opt_image ) : ?>

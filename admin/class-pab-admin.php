@@ -262,14 +262,16 @@ class PAB_Admin {
 
 		wp_nonce_field( 'pab_group_editor_meta', 'pab_group_editor_nonce' );
 		?>
-		<p class="description"><?php esc_html_e( 'Choose specific products and/or taxonomy rules. If both are set, the group applies when either the product is listed or the rules match (OR). Within rules, use Match all / Match any.', 'pab' ); ?></p>
-		<p>
-			<label for="pab-group-priority"><strong><?php esc_html_e( 'Priority', 'pab' ); ?></strong></label><br/>
-			<input id="pab-group-priority" type="number" class="small-text" name="pab_group_priority" value="<?php echo esc_attr( (string) $priority ); ?>" />
-			<span class="description"><?php esc_html_e( 'Lower number applies earlier when multiple groups match a product.', 'pab' ); ?></span>
-		</p>
-		<p>
-			<label for="pab-group-products"><strong><?php esc_html_e( 'Products', 'pab' ); ?></strong></label><br/>
+		<p class="description pab-group-targeting-intro"><?php esc_html_e( 'Choose specific products and/or taxonomy rules. If both are set, the group applies when either the product is listed or the rules match (OR). Within rules, use Match all / Match any.', 'pab' ); ?></p>
+		<div class="pab-group-targeting-priority">
+			<label for="pab-group-priority"><strong><?php esc_html_e( 'Priority', 'pab' ); ?></strong></label>
+			<div class="pab-group-targeting-priority__row">
+				<input id="pab-group-priority" type="number" class="small-text" name="pab_group_priority" value="<?php echo esc_attr( (string) $priority ); ?>" />
+				<span class="description"><?php esc_html_e( 'Lower number applies earlier when multiple groups match a product.', 'pab' ); ?></span>
+			</div>
+		</div>
+		<p class="pab-group-targeting-products">
+			<label for="pab-group-products"><strong><?php esc_html_e( 'Products', 'pab' ); ?></strong></label>
 			<select id="pab-group-products" class="wc-product-search pab-group-products-select" name="pab_group_products[]" multiple="multiple" data-placeholder="<?php esc_attr_e( 'Search for products…', 'pab' ); ?>" data-action="woocommerce_json_search_products_and_variations">
 				<?php foreach ( $product_ids as $product_id ) : ?>
 					<?php $product = wc_get_product( $product_id ); ?>
@@ -281,13 +283,14 @@ class PAB_Admin {
 		</p>
 
 		<div id="pab-group-location-rules" class="pab-group-location-rules">
-			<p><strong><?php esc_html_e( 'Location rules', 'pab' ); ?></strong></p>
+			<p class="pab-group-location-rules__heading"><strong><?php esc_html_e( 'Location rules', 'pab' ); ?></strong></p>
 			<p class="description"><?php esc_html_e( 'Optional: target products by category, tag, type, or other product taxonomies (ACF-style).', 'pab' ); ?></p>
-			<p class="pab-location-rules-match">
+			<p class="pab-location-rules-match" role="group" aria-label="<?php esc_attr_e( 'Rule matching', 'pab' ); ?>">
 				<span class="description pab-location-rules-match__label"><?php esc_html_e( 'Rule matching:', 'pab' ); ?></span>
-				<label><input type="radio" name="pab_group_location_rules[match]" value="all" <?php checked( $location_rules['match'], 'all' ); ?> /> <?php esc_html_e( 'Match all rules', 'pab' ); ?></label>
-				&nbsp;&nbsp;
-				<label><input type="radio" name="pab_group_location_rules[match]" value="any" <?php checked( $location_rules['match'], 'any' ); ?> /> <?php esc_html_e( 'Match any rule', 'pab' ); ?></label>
+				<span class="pab-location-rules-match__options">
+					<label class="pab-location-rules-match__option"><input type="radio" name="pab_group_location_rules[match]" value="all" <?php checked( $location_rules['match'], 'all' ); ?> /> <?php esc_html_e( 'Match all rules', 'pab' ); ?></label>
+					<label class="pab-location-rules-match__option"><input type="radio" name="pab_group_location_rules[match]" value="any" <?php checked( $location_rules['match'], 'any' ); ?> /> <?php esc_html_e( 'Match any rule', 'pab' ); ?></label>
+				</span>
 			</p>
 			<div id="pab-group-location-rules-rows" class="pab-group-location-rules-rows">
 				<?php
@@ -308,7 +311,7 @@ class PAB_Admin {
 				endforeach;
 				?>
 			</div>
-			<p>
+			<p class="pab-group-location-rules__footer">
 				<button type="button" class="button" id="pab-add-location-rule" <?php disabled( empty( $taxonomies ) ); ?>><?php esc_html_e( 'Add rule', 'pab' ); ?></button>
 			</p>
 			<?php if ( empty( $taxonomies ) ) : ?>
