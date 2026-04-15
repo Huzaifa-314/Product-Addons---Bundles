@@ -166,6 +166,7 @@ class PAB_Product_Tab {
 		$choice_mode     = isset( $field['choice_price_mode'] ) ? $field['choice_price_mode'] : 'per_option';
 		$options         = isset( $field['options'] ) ? $field['options'] : [];
 		$image_swatch_size   = PAB_Data::sanitize_image_swatch_size( $field['image_swatch_size'] ?? 'medium' );
+		$image_swatch_shape  = PAB_Data::sanitize_image_swatch_shape( $field['image_swatch_shape'] ?? 'square' );
 		$swatch_allow_custom = ! empty( $field['swatch_allow_custom_upload'] );
 		$swatch_custom_label = isset( $field['swatch_custom_label'] ) ? (string) $field['swatch_custom_label'] : '';
 		$swatch_custom_price = isset( $field['swatch_custom_price'] ) ? $field['swatch_custom_price'] : '';
@@ -409,6 +410,16 @@ class PAB_Product_Tab {
 										<option value="large" <?php selected( $image_swatch_size, 'large' ); ?>><?php esc_html_e( 'Large', 'pab' ); ?></option>
 									</select>
 									<p class="description"><?php esc_html_e( 'Tile size for preset images and the custom-upload option on the product page.', 'pab' ); ?></p>
+								</td>
+							</tr>
+							<tr class="pab-field-settings-table__row">
+								<th scope="row" class="pab-field-settings-table__label"><label for="pab-field-swatch-shape-<?php echo esc_attr( $id_suffix ); ?>"><?php esc_html_e( 'Swatch shape', 'pab' ); ?></label></th>
+								<td class="pab-field-settings-table__control">
+									<select id="pab-field-swatch-shape-<?php echo esc_attr( $id_suffix ); ?>" class="pab-field-image-swatch-shape" name="<?php echo esc_attr( $field_name_root ); ?>[image_swatch_shape]"<?php disabled( $is_template, true ); ?>>
+										<option value="square" <?php selected( $image_swatch_shape, 'square' ); ?>><?php esc_html_e( 'Square', 'pab' ); ?></option>
+										<option value="circle" <?php selected( $image_swatch_shape, 'circle' ); ?>><?php esc_html_e( 'Circle', 'pab' ); ?></option>
+									</select>
+									<p class="description"><?php esc_html_e( 'Shape of preset and custom-upload swatch thumbnails on the product page.', 'pab' ); ?></p>
 								</td>
 							</tr>
 						</tbody>

@@ -123,6 +123,7 @@ class PAB_Save_Fields {
 
 		if ( 'image_swatch' === $type ) {
 			$item['image_swatch_size']          = PAB_Data::sanitize_image_swatch_size( $field['image_swatch_size'] ?? 'medium' );
+			$item['image_swatch_shape']         = PAB_Data::sanitize_image_swatch_shape( $field['image_swatch_shape'] ?? 'square' );
 			$item['swatch_allow_custom_upload'] = ! empty( $field['swatch_allow_custom_upload'] );
 			$custom_lbl                         = sanitize_text_field( $field['swatch_custom_label'] ?? '' );
 			$item['swatch_custom_label']        = $custom_lbl !== '' ? $custom_lbl : 'Upload your own';

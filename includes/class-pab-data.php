@@ -20,9 +20,9 @@ class PAB_Data {
 	}
 
 	/**
-	 * Global storefront shape for image swatch thumbnails (admin: PAB → Settings).
+	 * Image swatch thumbnail shape for a field (Product → Add-ons & Composite → Image swatch appearance).
 	 *
-	 * @param mixed $value Raw setting.
+	 * @param mixed $value Raw value.
 	 * @return string circle|square
 	 */
 	public static function sanitize_image_swatch_shape( $value ): string {

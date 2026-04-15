@@ -258,13 +258,16 @@ class PAB_Display_Fields {
 
 		$swatch_allow_custom = ( 'image_swatch' === $type && ! empty( $field['swatch_allow_custom_upload'] ) );
 
-		$swatch_size_class = '';
+		$swatch_size_class  = '';
+		$swatch_shape_class = '';
 		if ( 'image_swatch' === $type ) {
 			$sz = PAB_Data::sanitize_image_swatch_size( $field['image_swatch_size'] ?? 'medium' );
 			$swatch_size_class = ' pab-swatch-size--' . esc_attr( $sz );
+			$sh = PAB_Data::sanitize_image_swatch_shape( $field['image_swatch_shape'] ?? 'square' );
+			$swatch_shape_class = ' pab-swatch-shape--' . esc_attr( $sh );
 		}
 
-		$wrap_class = 'pab-field-wrap pab-field-type-' . esc_attr( $type ) . $swatch_size_class;
+		$wrap_class = 'pab-field-wrap pab-field-type-' . esc_attr( $type ) . $swatch_size_class . $swatch_shape_class;
 		if ( $is_nested ) {
 			$wrap_class .= ' pab-field-wrap--nested';
 		}
