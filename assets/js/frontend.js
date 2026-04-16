@@ -71,6 +71,18 @@
         $priceSpan.data('pab-default-label-cached', true);
     }
 
+    /** Align .pab-swatch-active with :checked (e.g. browser autofill, first paint before other sync). */
+    function syncImageSwatchActiveClass() {
+        $('.pab-image-swatch-wrap').each(function () {
+            var $wrap = $(this);
+            var $checked = $wrap.find('.pab-swatch-radio:checked');
+            $wrap.find('.pab-swatch-item').removeClass('pab-swatch-active');
+            if ($checked.length) {
+                $checked.closest('.pab-swatch-item').addClass('pab-swatch-active');
+            }
+        });
+    }
+
     function restoreImageSwatchDefaultLabel($priceSpan) {
         if (!$priceSpan || !$priceSpan.length) {
             return;
@@ -962,6 +974,7 @@
         $('.pab-child-variation-select').each(function () {
             refreshChildVariationPrice($(this));
         });
+        syncImageSwatchActiveClass();
         $('.pab-field-wrap.pab-field-type-image_swatch').each(function () {
             cacheImageSwatchDefaultLabel($(this));
         });

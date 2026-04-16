@@ -520,7 +520,9 @@ class PAB_Display_Fields {
 					echo '<label class="pab-swatch-item" title="' . esc_attr( $opt_label . $price_label ) . '">';
 					echo '<input type="radio" name="' . esc_attr( $iname ) . '" value="' . esc_attr( $opt_submit ) . '" class="pab-swatch-radio" data-option-price="' . esc_attr( $data_price ) . '" ' . $req_attr . ' />';
 					if ( $opt_image ) {
+						echo '<span class="pab-swatch-thumb">';
 						echo '<img src="' . esc_url( $opt_image ) . '" alt="' . esc_attr( $img_alt ) . '" class="pab-swatch-img" />';
+						echo '</span>';
 					}
 					if ( $label_trim !== '' ) {
 						echo '<span class="pab-swatch-label">' . esc_html( $opt_label ) . '</span>';
@@ -530,7 +532,7 @@ class PAB_Display_Fields {
 				if ( $swatch_allow_custom ) {
 					echo '<label class="pab-swatch-item pab-swatch-item--custom" title="' . esc_attr( $custom_label . $custom_price_lbl ) . '">';
 					echo '<input type="radio" name="' . esc_attr( $iname ) . '" value="' . esc_attr( PAB_Data::SWATCH_CUSTOM_POST_VALUE ) . '" class="pab-swatch-radio" data-option-price="' . esc_attr( $custom_opt_price ) . '" data-pab-custom-upload="1" ' . $req_attr . ' />';
-					echo '<span class="pab-swatch-custom-cell">' . esc_html( $custom_label ) . '</span>';
+					echo '<span class="pab-swatch-custom-cell pab-swatch-thumb">' . esc_html( $custom_label ) . '</span>';
 					if ( $swatch_any_choice_label ) {
 						echo '<span class="pab-swatch-label pab-swatch-label--custom-rail" aria-hidden="true">&nbsp;</span>';
 					}

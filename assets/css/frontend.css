@@ -511,6 +511,7 @@
     --pab-addon-swatch-label-fs: 9px;
     --pab-addon-swatch-gap: 8px;
     --pab-addon-swatch-custom-cell-fs: 0.6rem;
+    --pab-swatch-check-size: clamp(14px, calc(var(--pab-addon-swatch-img, 50px) * 0.34), 20px);
 }
 
 .pab-field-wrap.pab-field-type-image_swatch.pab-swatch-size--small {
@@ -558,6 +559,44 @@
 .pab-field-wrap.pab-field-type-image_swatch .pab-swatch-item.pab-swatch-active {
     border-color: #333;
     box-shadow: 0 0 0 1px #333;
+}
+
+/*
+ * Swatch check badge (WoodMart: woodmart-font \\f107 on dark circle, same glyph as .wd-bg-style-4 swatches).
+ * .pab-swatch-thumb wraps the image / custom cell because ::after on <img> is not reliable.
+ */
+.pab-field-wrap.pab-field-type-image_swatch .pab-swatch-thumb {
+    position: relative;
+    display: inline-block;
+    vertical-align: top;
+    line-height: 0;
+}
+
+.pab-field-wrap.pab-field-type-image_swatch .pab-swatch-item.pab-swatch-active .pab-swatch-thumb::after,
+.pab-field-wrap.pab-field-type-image_swatch .pab-swatch-item:has(.pab-swatch-radio:checked) .pab-swatch-thumb::after {
+    content: "\f107";
+    position: absolute;
+    z-index: 2;
+    inset-block-start: -4px;
+    inset-inline-end: -4px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--pab-swatch-check-size, 18px);
+    height: var(--pab-swatch-check-size, 18px);
+    border-radius: 50%;
+    background-color: var(--color-gray-900, #242424);
+    color: #fff;
+    font-family: woodmart-font, "woodmart-font";
+    font-size: calc(var(--pab-swatch-check-size, 18px) * 0.48);
+    font-weight: 400;
+    font-style: normal;
+    line-height: 1;
+    pointer-events: none;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 .pab-field-wrap.pab-field-type-image_swatch .pab-swatch-item--custom {
