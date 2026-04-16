@@ -193,7 +193,16 @@ class PAB_Cart_Hooks {
 			if ( ! is_array( $part ) ) {
 				continue;
 			}
-			$segments[] = $this->format_addon_cart_display_segment( $part, $base_for_display, $line_qty, $per_line_price );
+			$body = $this->format_addon_cart_display_segment( $part, $base_for_display, $line_qty, $per_line_price );
+			if ( $body === '' ) {
+				continue;
+			}
+			$sub = isset( $part['sub_label'] ) ? trim( (string) $part['sub_label'] ) : '';
+			if ( $sub !== '' ) {
+				$segments[] = '<span class="pab-popup-cart-subfield"><span class="pab-popup-cart-subfield-label">' . esc_html( $sub ) . '</span><span class="pab-popup-cart-subfield-sep">: </span>' . $body . '</span>';
+			} else {
+				$segments[] = $body;
+			}
 		}
 		$segments = array_values(
 			array_filter(
@@ -863,6 +872,10 @@ class PAB_Cart_Hooks {
 						'price_type' => $price_type,
 						'type'       => $field['type'],
 					];
+					$sub_label = trim( (string) ( $field['label'] ?? '' ) );
+					if ( $sub_label !== '' ) {
+						$row['sub_label'] = $sub_label;
+					}
 					if ( $file_url !== '' ) {
 						$row['file_url'] = $file_url;
 					}
@@ -941,12 +954,17 @@ class PAB_Cart_Hooks {
 					require_once ABSPATH . 'wp-admin/includes/file.php';
 					$upload = wp_handle_upload( $file_array, [ 'test_form' => false ] );
 					if ( ! empty( $upload['url'] ) ) {
-						$pab_popup_merge_buckets[ $pid ][] = [
+						$file_row = [
 							'value'      => $upload['url'],
 							'price'      => $price,
 							'price_type' => $pu_pt,
 							'type'       => $field['type'],
 						];
+						$sub_label = trim( (string) ( $field['label'] ?? '' ) );
+						if ( $sub_label !== '' ) {
+							$file_row['sub_label'] = $sub_label;
+						}
+						$pab_popup_merge_buckets[ $pid ][] = $file_row;
 					}
 				}
 			}

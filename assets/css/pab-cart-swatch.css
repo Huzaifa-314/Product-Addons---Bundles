@@ -82,6 +82,21 @@ img.pab-cart-swatch-img--circle {
     text-align: left;
 }
 
+/* Optional per–sub-field label (admin “label” on nested popup fields); mirrors WC variation name weight */
+.pab-popup-cart-subfield {
+    display: inline;
+}
+
+.pab-popup-cart-subfield-label {
+    font-weight: 600;
+    color: var(--color-gray-800, CanvasText);
+}
+
+.pab-popup-cart-subfield-sep {
+    font-weight: inherit;
+    opacity: 0.9;
+}
+
 /* Uniform popup fee: one total after all values (not tied to the first line) */
 .pab-popup-cart-group-surcharge {
     display: inline;
