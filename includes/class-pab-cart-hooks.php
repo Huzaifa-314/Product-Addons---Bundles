@@ -150,7 +150,7 @@ class PAB_Cart_Hooks {
 			if ( $raw_value === '' ) {
 				return '';
 			}
-			$display_value = '<a href="' . esc_url( $raw_value ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'View File', 'pab' ) . '</a>';
+			$display_value = '<a class="pab-cart-file-link" href="' . esc_url( $raw_value ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'View File', 'pab' ) . '</a>';
 			if ( $append_surcharge ) {
 				$surcharge = $this->compute_addon_surcharge( $addon, $base_for_display, $line_qty );
 				if ( $surcharge > 0 ) {
@@ -738,11 +738,17 @@ class PAB_Cart_Hooks {
 					'size'     => $_FILES['pab_addon_file']['size'][ $i ],
 				];
 
+				if ( ! empty( $file_array['error'] ) && UPLOAD_ERR_OK !== (int) $file_array['error'] ) {
+					wc_add_notice( __( 'Your add-on file could not be uploaded. Please try again or use a smaller file.', 'pab' ), 'error' );
+					continue;
+				}
+
 				// Validate MIME
 				$allowed_mime = [ 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf', 'text/plain' ];
 				$finfo = new finfo( FILEINFO_MIME_TYPE );
 				$mime  = $finfo->file( $file_array['tmp_name'] );
 				if ( ! in_array( $mime, $allowed_mime, true ) ) {
+					wc_add_notice( __( 'That file type is not allowed for this add-on.', 'pab' ), 'error' );
 					continue;
 				}
 
@@ -1135,7 +1141,7 @@ class PAB_Cart_Hooks {
 				$raw_value = isset( $addon['value'] ) ? (string) $addon['value'] : '';
 
 				if ( in_array( $addon['type'] ?? '', [ 'file', 'image_upload' ], true ) ) {
-					$display_value = '<a href="' . esc_url( $raw_value ) . '" target="_blank">' . esc_html__( 'View File', 'pab' ) . '</a>';
+					$display_value = '<a class="pab-cart-file-link" href="' . esc_url( $raw_value ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'View File', 'pab' ) . '</a>';
 				} elseif ( 'image_swatch' === ( $addon['type'] ?? '' ) ) {
 					$display_value = $this->format_image_swatch_cart_value( $addon, $raw_value, $base_for_display, $line_qty );
 				} else {
@@ -1207,7 +1213,7 @@ class PAB_Cart_Hooks {
 				$raw_value = isset( $addon['value'] ) ? (string) $addon['value'] : '';
 
 				if ( in_array( $type, [ 'file', 'image_upload' ], true ) && $raw_value !== '' ) {
-					$display_value = '<a href="' . esc_url( $raw_value ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'View File', 'pab' ) . '</a>';
+					$display_value = '<a class="pab-cart-file-link" href="' . esc_url( $raw_value ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'View File', 'pab' ) . '</a>';
 					$surcharge     = $this->compute_addon_surcharge( $addon, $base_for_display, $line_qty );
 					if ( $surcharge > 0 ) {
 						$display_value .= ' (+' . wc_price( $surcharge ) . ')';

@@ -1059,9 +1059,142 @@
     });
 
     // -------------------------------------------------------------------------
+    // Woodmart: AJAX add-to-cart uses $form.serialize(), which omits file inputs.
+    // Submit via FormData in capture phase so $_FILES reaches WooCommerce / PAB.
+    // -------------------------------------------------------------------------
+    function pabCartFormHasPabFileWithData(form) {
+        if (!form || !form.querySelectorAll) {
+            return false;
+        }
+        var inputs = form.querySelectorAll('input[type="file"][name^="pab_addon_file"], input[type="file"][name^="pab_popup_file"]');
+        var i;
+        for (i = 0; i < inputs.length; i++) {
+            if (inputs[i].files && inputs[i].files.length > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function pabRunWoodmartAddToCartSuccessWorkflow(response, $thisbutton) {
+        if (!response) {
+            return;
+        }
+        if (response.error && response.product_url) {
+            window.location = response.product_url;
+            return;
+        }
+        if (typeof woodmart_settings === 'undefined') {
+            return;
+        }
+        if (woodmart_settings.cart_redirect_after_add === 'yes') {
+            window.location = woodmart_settings.cart_url;
+            return;
+        }
+        $thisbutton.removeClass('loading');
+        var fragments = response.fragments || {};
+        var cart_hash = response.cart_hash;
+        if (fragments) {
+            $.each(fragments, function (key) {
+                $(key).addClass('updating');
+            });
+            $.each(fragments, function (key, value) {
+                $(key).replaceWith(value);
+            });
+        }
+        var $noticeWrapper = $('.woocommerce-notices-wrapper');
+        $noticeWrapper.empty();
+        if (response.notices && response.notices.indexOf('error') > 0) {
+            $noticeWrapper.append(response.notices);
+            $thisbutton.addClass('not-added');
+            if (typeof woodmartThemeModule !== 'undefined' && woodmartThemeModule.$body) {
+                woodmartThemeModule.$body.trigger('not_added_to_cart', [fragments, cart_hash, $thisbutton]);
+            }
+        } else {
+            if (typeof $.fn.magnificPopup !== 'undefined' && woodmart_settings.add_to_cart_action === 'widget') {
+                $.magnificPopup.close();
+            }
+            $thisbutton.addClass('added');
+            if (typeof woodmartThemeModule !== 'undefined' && woodmartThemeModule.$body) {
+                woodmartThemeModule.$body.trigger('added_to_cart', [fragments, cart_hash, $thisbutton]);
+            }
+        }
+    }
+
+    function pabWoodmartMultipartSubmitCapture(e) {
+        if (typeof woodmart_settings === 'undefined' || !woodmart_settings.ajaxurl) {
+            return;
+        }
+        if (woodmart_settings.ajax_add_to_cart == false) {
+            return;
+        }
+        var form = e.target;
+        if (!form || form.tagName !== 'FORM' || !form.classList.contains('cart')) {
+            return;
+        }
+        if (!pabCartFormHasPabFileWithData(form)) {
+            return;
+        }
+        var $form = $(form);
+        var $productWrapper = $form.parents('.single-product-page');
+        if ($productWrapper.length === 0) {
+            $productWrapper = $form.parents('.product-quick-view');
+        }
+        if ($productWrapper.hasClass('product-type-external') || $productWrapper.hasClass('product-type-zakeke') || $productWrapper.hasClass('product-type-gift-card')) {
+            return;
+        }
+        var sub = e.submitter;
+        if (sub && $(sub).hasClass('wd-buy-now-btn')) {
+            return;
+        }
+        if ($form.parents('.wd-sticky-btn-cart').length > 0) {
+            var $stickyBtnWrap = $form.parents('.wd-sticky-btn-cart');
+            if ($stickyBtnWrap.hasClass('wd-product-type-external')) {
+                return;
+            }
+        }
+
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        var $thisbutton = $form.find('.single_add_to_cart_button');
+        var fd = new FormData(form);
+        fd.append('action', 'woodmart_ajax_add_to_cart');
+        if ($thisbutton.val()) {
+            fd.set('add-to-cart', $thisbutton.val());
+        }
+
+        $thisbutton.removeClass('added not-added');
+        $thisbutton.addClass('loading');
+
+        if (typeof woodmartThemeModule !== 'undefined' && woodmartThemeModule.$body) {
+            woodmartThemeModule.$body.trigger('adding_to_cart', [$thisbutton, fd]);
+        }
+
+        $.ajax({
+            url: woodmart_settings.ajaxurl,
+            data: fd,
+            method: 'POST',
+            processData: false,
+            contentType: false,
+            success: function (response) {
+                pabRunWoodmartAddToCartSuccessWorkflow(response, $thisbutton);
+            },
+            error: function () {
+                if (typeof console !== 'undefined' && console.log) {
+                    console.log('PAB: multipart add-to-cart request failed');
+                }
+            }
+        });
+    }
+
+    // -------------------------------------------------------------------------
     // Init on DOM ready
     // -------------------------------------------------------------------------
     $(function () {
+        if (document.body) {
+            document.body.addEventListener('submit', pabWoodmartMultipartSubmitCapture, true);
+        }
         pabInitInjectedAddons();
     });
 

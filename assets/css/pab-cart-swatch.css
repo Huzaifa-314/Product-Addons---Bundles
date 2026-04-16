@@ -3,6 +3,42 @@
  * Loaded on all storefront pages so AJAX / Woodmart side-cart has correct layout.
  */
 
+/* Add-on upload link: softer than bold dt/labels; hover ties to theme accent */
+a.pab-cart-file-link {
+    color: var(--color-gray-500, #757575);
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 0.12em;
+}
+
+a.pab-cart-file-link:hover,
+a.pab-cart-file-link:focus {
+    color: var(--wd-primary-color, #c4551c);
+}
+
+/*
+ * Cart / checkout tables (Woodmart, etc.): `td.product-name a:not(.button)` uses
+ * entity title color + weight — beat it without touching the main product title link.
+ */
+.woocommerce table.shop_table tr.cart_item td.product-name a.pab-cart-file-link,
+.woocommerce-checkout .woocommerce table.shop_table tr.cart_item td.product-name a.pab-cart-file-link,
+.woocommerce-order-received .woocommerce table.shop_table td.product-name a.pab-cart-file-link {
+    color: var(--color-gray-500, #757575);
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 0.12em;
+    display: inline;
+}
+
+.woocommerce table.shop_table tr.cart_item td.product-name a.pab-cart-file-link:hover,
+.woocommerce table.shop_table tr.cart_item td.product-name a.pab-cart-file-link:focus,
+.woocommerce-checkout .woocommerce table.shop_table tr.cart_item td.product-name a.pab-cart-file-link:hover,
+.woocommerce-checkout .woocommerce table.shop_table tr.cart_item td.product-name a.pab-cart-file-link:focus,
+.woocommerce-order-received .woocommerce table.shop_table td.product-name a.pab-cart-file-link:hover,
+.woocommerce-order-received .woocommerce table.shop_table td.product-name a.pab-cart-file-link:focus {
+    color: var(--wd-primary-color, #c4551c);
+}
+
 /* Woodmart and similar themes: reset button-like <a> and lock a fixed swatch box */
 a.pab-cart-swatch-link,
 a.pab-cart-swatch-link:hover,
