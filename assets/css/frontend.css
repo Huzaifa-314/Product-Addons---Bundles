@@ -1144,8 +1144,55 @@
     margin-top: 0;
 }
 
-.pab-field-type-popup .pab-popup-open {
-    display: inline-block;
+/*
+ * Popup trigger: primary / accented tokens (same as Done + Add to cart), not default gray.
+ */
+.pab-field-type-popup button.pab-popup-open.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    box-sizing: border-box;
+    vertical-align: middle;
+    line-height: 1.2;
+    text-decoration: none !important;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    appearance: none;
+    -webkit-appearance: none;
+    border-radius: var(--btn-accented-brd-radius, var(--btn-brd-radius, 0));
+    color: var(--btn-accented-color, var(--btn-color, #fff));
+    box-shadow: var(--btn-accented-box-shadow, none);
+    background-color: var(--btn-accented-bgcolor, var(--wd-primary-color, #b32d2e));
+    text-transform: var(--btn-accented-transform, var(--btn-transform, uppercase));
+    font-weight: var(--btn-accented-font-weight, var(--btn-font-weight, 600));
+    font-family: var(--btn-accented-font-family, var(--btn-font-family, inherit));
+    font-style: var(--btn-accented-font-style, var(--btn-font-style, unset));
+    border: var(--btn-brd-width, 0) var(--btn-brd-style, solid) transparent;
+    min-height: var(--btn-height, auto);
+    padding: var(--btn-padding, 12px 22px);
+    --btn-color: var(--btn-accented-color);
+    --btn-bgcolor: var(--btn-accented-bgcolor);
+}
+
+.pab-field-type-popup button.pab-popup-open.button:hover,
+.pab-field-type-popup button.pab-popup-open.button:focus {
+    color: var(--btn-accented-color-hover, var(--btn-accented-color, #fff));
+    box-shadow: var(--btn-accented-box-shadow-hover, var(--btn-accented-box-shadow, none));
+    background-color: var(--btn-accented-bgcolor-hover, var(--btn-accented-bgcolor));
+    filter: none;
+    opacity: 1;
+}
+
+.pab-field-type-popup button.pab-popup-open.button:active {
+    box-shadow: var(--btn-accented-box-shadow-active, var(--btn-accented-box-shadow, none));
+    bottom: var(--btn-accented-bottom-active, 0);
+}
+
+.pab-field-type-popup button.pab-popup-open.button::before,
+.pab-field-type-popup button.pab-popup-open.button::after {
+    content: none !important;
+    display: none !important;
 }
 
 /* Full-screen overlay (Woodmart modals / headers use very high z-index) */
