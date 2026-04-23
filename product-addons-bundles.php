@@ -4,7 +4,7 @@
  * Plugin URI:  #
  * Description: Add product add-on fields, composite/child products, and conditional pricing to WooCommerce products.
  * Version:     1.0.38
- * Author:      Custom
+ * Author:      Muhammad Huzaifa
  * Text Domain: pab
  * Domain Path: /languages
  * Requires at least: 6.8
@@ -45,6 +45,7 @@ function pab_load() {
 	require_once PAB_PATH . 'admin/class-pab-admin.php';
 	require_once PAB_PATH . 'admin/class-pab-product-tab.php';
 	require_once PAB_PATH . 'admin/class-pab-save-fields.php';
+	require_once PAB_PATH . 'admin/class-pab-group-export.php';
 
 	// Frontend
 	require_once PAB_PATH . 'frontend/class-pab-frontend.php';
@@ -54,6 +55,7 @@ function pab_load() {
 	// Instantiate
 	PAB_Group_Resolver::init();
 	new PAB_Admin();
+	new PAB_Group_Export();
 	new PAB_Frontend();
 	new PAB_Cart_Hooks();
 	new PAB_Ajax();
