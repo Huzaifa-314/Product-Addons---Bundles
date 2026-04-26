@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Product Addons & Bundles (PAB) is a WooCommerce extension that adds configurable add-on fields, composite/child product selection, and conditional pricing rules to WooCommerce products. Text domain: `pab`. Version is defined in both the plugin header and `PAB_VERSION` constant in `product-addons-bundles.php` — update both together.
+Infinia Product Addons and Bundles (PAB) is a WooCommerce extension that adds configurable add-on fields, composite/child product selection, and conditional pricing rules to WooCommerce products. Text domain: `pab`. Version is defined in both the plugin header and `PAB_VERSION` constant in `infinia-product-addons-bundles.php` — update both together.
 
 ## Requirements
 

@@ -132,8 +132,8 @@ class PAB_Admin {
 
 	public function register_settings_page() {
 		add_menu_page(
-			__( 'Product Addons & Bundles', 'pab' ),
-			__( 'PAB', 'pab' ),
+			__( 'Infinia Product Addons and Bundles', 'pab' ),
+			__( 'Infinia PAB', 'pab' ),
 			'manage_woocommerce',
 			'pab-settings',
 			[ $this, 'render_settings_page' ],
@@ -188,7 +188,7 @@ class PAB_Admin {
 		$settings    = get_option( 'pab_settings', [] );
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'Product Addons & Bundles', 'pab' ); ?></h1>
+			<h1><?php esc_html_e( 'Infinia Product Addons and Bundles', 'pab' ); ?></h1>
 			<?php $this->render_admin_notice(); ?>
 			<h2 class="nav-tab-wrapper woo-nav-tab-wrapper">
 				<a href="<?php echo esc_url( admin_url( 'admin.php?page=pab-settings&tab=general' ) ); ?>" class="nav-tab <?php echo ( 'general' === $current_tab ) ? 'nav-tab-active' : ''; ?>"><?php esc_html_e( 'General', 'pab' ); ?></a>

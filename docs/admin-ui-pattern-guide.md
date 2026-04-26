@@ -1,4 +1,4 @@
-# Product Addons & Bundles Admin UI Pattern Guide
+# Infinia Product Addons and Bundles Admin UI Pattern Guide
 
 ## Navigation
 - Use WooCommerce-native tabs (`nav-tab-wrapper`) for top-level plugin settings sections.

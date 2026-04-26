@@ -9,7 +9,7 @@ class PAB_Data {
 	public const SWATCH_CUSTOM_POST_VALUE = '__pab_custom_image__';
 
 	/**
-	 * Global storefront size for product addon image swatch tiles (admin: PAB → Settings).
+	 * Global storefront size for product addon image swatch tiles (admin: Infinia PAB -> Settings).
 	 *
 	 * @param mixed $value Raw setting.
 	 * @return string small|medium|large

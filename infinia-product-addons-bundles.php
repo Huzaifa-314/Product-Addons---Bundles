@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: Product Addons & Bundles
+ * Plugin Name: Infinia Product Addons and Bundles
  * Plugin URI:  #
  * Description: Add product add-on fields, composite/child products, and conditional pricing to WooCommerce products.
- * Version:     1.0.38
+ * Version:     1.0.39
  * Author:      Muhammad Huzaifa
  * Text Domain: pab
  * Domain Path: /languages
@@ -15,7 +15,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'PAB_VERSION', '1.0.38' );
+define( 'PAB_VERSION', '1.0.39' );
 define( 'PAB_PATH', plugin_dir_path( __FILE__ ) );
 define( 'PAB_URL', plugin_dir_url( __FILE__ ) );
 
@@ -25,7 +25,7 @@ define( 'PAB_URL', plugin_dir_url( __FILE__ ) );
 function pab_check_woocommerce() {
 	if ( ! class_exists( 'WooCommerce' ) ) {
 		add_action( 'admin_notices', function () {
-			echo '<div class="error"><p><strong>Product Addons &amp; Bundles</strong> requires WooCommerce to be installed and active.</p></div>';
+			echo '<div class="error"><p><strong>Infinia Product Addons and Bundles</strong> requires WooCommerce to be installed and active.</p></div>';
 		} );
 		return;
 	}

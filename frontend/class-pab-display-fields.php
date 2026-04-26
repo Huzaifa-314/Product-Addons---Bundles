@@ -136,7 +136,7 @@ class PAB_Display_Fields {
 	}
 
 	/**
-	 * Primary line for image upload dropzone (WooCommerce → Product Addons & Bundles → General).
+	 * Primary line for image upload dropzone (WooCommerce -> Infinia Product Addons and Bundles -> General).
 	 */
 	private function get_upload_image_drop_title(): string {
 		$settings = get_option( 'pab_settings', [] );

@@ -36,7 +36,7 @@ class PAB_Product_Tab {
 				<span class="description"><?php esc_html_e( 'Attach reusable groups directly to this product. Lower priority runs first.', 'pab' ); ?></span>
 			</p>
 			<?php if ( empty( $this->available_groups ) ) : ?>
-				<p class="form-field"><span class="description"><?php esc_html_e( 'No groups available yet. Create them in WooCommerce -> Product Addons & Bundles -> Addon Groups.', 'pab' ); ?></span></p>
+				<p class="form-field"><span class="description"><?php esc_html_e( 'No groups available yet. Create them in WooCommerce -> Infinia Product Addons and Bundles -> Addon Groups.', 'pab' ); ?></span></p>
 			<?php else : ?>
 				<table class="widefat striped pab-assignments-table">
 					<thead>

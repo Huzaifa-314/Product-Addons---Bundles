@@ -1,4 +1,4 @@
-# PAB UI/UX Guidelines — Product Addons & Bundles
+# PAB UI/UX Guidelines — Infinia Product Addons and Bundles
 
 > Audit findings, design system rules, component standards, and implementation guidance for the PAB admin interface.
 

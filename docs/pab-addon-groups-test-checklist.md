@@ -2,7 +2,7 @@
 
 ## Admin settings
 
-- Confirm `WooCommerce -> Product Addons & Bundles` shows tabs: `General`, `Addon Groups`, `Assignments`, and `Help`.
+- Confirm `WooCommerce -> Infinia Product Addons and Bundles` shows tabs: `General`, `Addon Groups`, `Assignments`, and `Help`.
 - Create a new addon group with valid addon-fields JSON and verify it appears in the group list.
 - Edit an existing group and confirm status changes between enabled and disabled.
 - Delete a group and confirm it is removed from list and assignment options.

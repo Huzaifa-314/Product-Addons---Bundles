@@ -1,8 +1,8 @@
-# Product Addons & Bundles Admin UI Audit
+# Infinia Product Addons and Bundles Admin UI Audit
 
 ## Current Surfaces
 - `WooCommerce > Product edit > Add-ons & Composite` tab is the main builder.
-- `WooCommerce > Product Addons & Bundles` settings screen is now available for plugin-level controls and future reusable bundle management.
+- `WooCommerce > Infinia Product Addons and Bundles` settings screen is now available for plugin-level controls and future reusable bundle management.
 
 ## Existing/Updated Architecture
 - PHP shell renderer: `admin/class-pab-admin.php` and `admin/class-pab-product-tab.php`.
